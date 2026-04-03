@@ -10,7 +10,7 @@ import {
   generateId,
 } from '../utils/board';
 
-const STORAGE_KEY = 'uniboard-state';
+const STORAGE_KEY = 'universal-board-state';
 
 const initialState: BoardState = {
   cols: 30,
@@ -43,7 +43,11 @@ export function useBoardState() {
 
   // localStorage への自動保存
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // quota exceeded or private browsing
+    }
   }, [state]);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [currentTool, setCurrentTool] = useState<ToolType>('select');
@@ -358,7 +362,7 @@ export function useBoardState() {
     const blob = new Blob([data], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'uniboard-project.json';
+    a.download = 'universal-board-project.json';
     a.click();
     URL.revokeObjectURL(a.href);
     setStatusMessage('プロジェクトを保存しました');
@@ -384,7 +388,7 @@ export function useBoardState() {
   const exportImage = useCallback((canvas: HTMLCanvasElement) => {
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
-    a.download = 'uniboard.png';
+    a.download = 'universal-board.png';
     a.click();
     setStatusMessage('画像を出力しました');
   }, []);

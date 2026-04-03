@@ -160,7 +160,8 @@ export function drawBoard(
   state: BoardState,
   opts: DrawOptions,
 ) {
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   const w = BOARD_PAD * 2 + state.cols * HOLE_SPACING;
   const h = BOARD_PAD * 2 + state.rows * HOLE_SPACING;
   canvas.width = w;
