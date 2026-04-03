@@ -9,8 +9,9 @@ import {
   Cluster,
   Base,
   ControlledFormDialog,
+  SegmentedControl,
 } from 'smarthr-ui';
-import type { ComponentTemplate, TemplateEditorPin } from '../types';
+import type { ComponentTemplate, TemplateEditorPin, BoardSide } from '../types';
 import { getBasePinOffsets } from '../utils/board';
 import { roundRect } from '../utils/canvas';
 import styles from './TemplateEditor.module.css';
@@ -39,6 +40,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
   const [hoveredHole, setHoveredHole] = useState<[number, number] | null>(null);
   const [responseStatus, setResponseStatus] = useState<ResponseStatus>(undefined);
   const [zoom, setZoom] = useState(1);
+  const [currentSide, setCurrentSide] = useState<BoardSide>('front');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleZoom = useCallback((delta: number) => {
@@ -54,7 +56,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
       setColor(editingTemplate.color);
       const offsets = editingTemplate.pinOffsets || getBasePinOffsets(editingTemplate);
       setPins(offsets.map(([r, c], i) => ({
-        r, c, label: editingTemplate.pins?.[i] || ''
+        r, c, label: editingTemplate.pins?.[i] || '',
       })));
     } else {
       setName(''); setW(2); setH(4); setColor('#e94560'); setPins([]);
@@ -62,6 +64,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     setHoveredHole(null);
     setResponseStatus(undefined);
     setZoom(1);
+    setCurrentSide('front');
   }, [visible, editingTemplate]);
 
   const drawGrid = useCallback(() => {
@@ -73,8 +76,16 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     canvas.width = cw;
     canvas.height = ch;
 
+    const isBack = currentSide === 'back';
+
     ctx.fillStyle = '#1b5e20';
     ctx.fillRect(0, 0, cw, ch);
+
+    if (isBack) {
+      ctx.save();
+      ctx.translate(cw, 0);
+      ctx.scale(-1, 1);
+    }
 
     ctx.fillStyle = color + '55';
     ctx.strokeStyle = color;
@@ -82,6 +93,20 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     roundRect(ctx, TE_PAD + 2, TE_PAD + 2, w * TE_SPACING - 4, h * TE_SPACING - 4, 6);
     ctx.fill();
     ctx.stroke();
+
+    const drawText = (text: string, x: number, y: number, baseline?: CanvasTextBaseline) => {
+      if (isBack) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(-1, 1);
+        if (baseline) ctx.textBaseline = baseline;
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      } else {
+        if (baseline) ctx.textBaseline = baseline;
+        ctx.fillText(text, x, y);
+      }
+    };
 
     for (let r = 0; r < h; r++) {
       for (let c = 0; c < w; c++) {
@@ -104,7 +129,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
           ctx.fillStyle = 'white';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(String(pinIdx + 1), x, y);
+          drawText(String(pinIdx + 1), x, y);
           ctx.restore();
 
           const pin = pins[pinIdx];
@@ -118,7 +143,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
             ctx.fillStyle = 'rgba(0,0,0,0.75)';
             ctx.fillRect(x - tw / 2, y - 20, tw, 12);
             ctx.fillStyle = '#ffd93d';
-            ctx.fillText(pin.label, x, y - 9);
+            drawText(pin.label, x, y - 9, 'bottom');
             ctx.restore();
           }
         }
@@ -133,6 +158,10 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
       }
     }
 
+    if (isBack) {
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.font = '9px monospace';
     ctx.fillStyle = '#666';
@@ -145,7 +174,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
       ctx.fillText(String(r), TE_PAD - 6, TE_PAD + r * TE_SPACING + TE_SPACING / 2 + 3);
     }
     ctx.restore();
-  }, [w, h, color, pins, hoveredHole]);
+  }, [w, h, color, pins, hoveredHole, currentSide]);
 
   useEffect(() => { drawGrid(); }, [drawGrid]);
 
@@ -155,8 +184,11 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const mx = (e.clientX - rect.left) * scaleX;
+    let mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
+    if (currentSide === 'back') {
+      mx = canvas.width - mx;
+    }
     const cc = Math.floor((mx - TE_PAD) / TE_SPACING);
     const rr = Math.floor((my - TE_PAD) / TE_SPACING);
     if (rr >= 0 && rr < h && cc >= 0 && cc < w) {
@@ -165,7 +197,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
       if (Math.sqrt((mx - hx) ** 2 + (my - hy) ** 2) < TE_SPACING / 2) return [rr, cc];
     }
     return null;
-  }, [w, h]);
+  }, [w, h, currentSide]);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const hole = holeFromMouse(e);
@@ -205,7 +237,7 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     }
 
     const tpl: ComponentTemplate = {
-      id: editingTemplate?.id || name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString(36),
+      id: editingTemplate?.id || crypto.randomUUID(),
       name: name.trim(), w, h, color,
       pinOffsets: pins.map(p => [p.r, p.c]),
       pins: pins.map(p => p.label || ''),
@@ -294,11 +326,21 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
         </div>
 
         <div className={styles.right}>
-          <Cluster gap={0.25} align="center" className={styles.zoomControls}>
-            <Button size="s" variant="secondary" onClick={() => handleZoom(-1)}>-</Button>
-            <Text size="S" className={styles.zoomLabel}>{Math.round(zoom * 100)}%</Text>
-            <Button size="s" variant="secondary" onClick={() => handleZoom(1)}>+</Button>
-            <Button size="s" variant="secondary" onClick={() => setZoom(1)}>1:1</Button>
+          <Cluster gap={0.5} align="center" className={styles.zoomControls}>
+            <SegmentedControl
+              options={[
+                { value: 'front', content: '表面' },
+                { value: 'back', content: '裏面' },
+              ]}
+              value={currentSide}
+              onClickOption={(v) => setCurrentSide(v as BoardSide)}
+            />
+            <Cluster gap={0.25} align="center">
+              <Button size="s" variant="secondary" onClick={() => handleZoom(-1)}>-</Button>
+              <Text size="S" className={styles.zoomLabel}>{Math.round(zoom * 100)}%</Text>
+              <Button size="s" variant="secondary" onClick={() => handleZoom(1)}>+</Button>
+              <Button size="s" variant="secondary" onClick={() => setZoom(1)}>1:1</Button>
+            </Cluster>
           </Cluster>
           <div className={styles.gridArea} onWheel={handleWheel}>
             <div className={styles.gridScroller} style={{
