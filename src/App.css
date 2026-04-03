@@ -1,0 +1,81 @@
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f8f7f6;
+  color: #23221e;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.board-header {
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #d6d3d0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.zoom-controls {
+  margin-left: auto !important;
+}
+
+.zoom-label {
+  min-width: 40px;
+  text-align: center;
+}
+
+.board-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+}
+
+.side-toggle-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+}
+
+.notification-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.status-bar {
+  padding: 6px 16px;
+  background: #fff;
+  border-top: 1px solid #d6d3d0;
+  font-size: 12px;
+  color: #706d65;
+}

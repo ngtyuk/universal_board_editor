@@ -1,0 +1,77 @@
+.sidebar {
+  width: 300px;
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  border-right: 1px solid #d6d3d0;
+  color: #23221e;
+}
+
+.title { color: #0077c7 !important; }
+
+.panel {
+  background: #f8f7f6 !important;
+  border: 1px solid #d6d3d0 !important;
+  border-radius: 8px !important;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #d6d3d0;
+  margin: 4px 0;
+}
+
+.templateDetail {
+  background: #f2f1f0 !important;
+  border: 1px solid #d6d3d0 !important;
+}
+
+/* Wire color buttons */
+.wireColorBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.wireColorBtn:hover { opacity: 0.85; }
+.wireColorActive { border-color: #0077c7 !important; box-shadow: 0 0 0 2px rgba(0,119,199,0.3); }
+
+/* Component list items */
+.componentItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 1px solid #d6d3d0;
+}
+.componentItem:hover { background: #f2f1f0; }
+.componentItemSelected { border-color: #0077c7 !important; background: #e8f4fd !important; }
+
+.colorDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.compName { flex: 1; }
+
+.actBtn {
+  background: none;
+  border: none;
+  color: #706d65;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.actBtn:hover { color: #e94560; }

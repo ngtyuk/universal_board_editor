@@ -1,0 +1,24 @@
+.container {
+  flex: 1;
+  overflow: auto;
+  background: #f2f1f0;
+}
+
+.scroller {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.canvas {
+  display: block;
+  cursor: crosshair;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transform-origin: top left;
+}
