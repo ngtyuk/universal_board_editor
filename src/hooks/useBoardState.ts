@@ -256,26 +256,56 @@ export function useBoardState() {
   }, [notify]);
 
   const addWire = useCallback((from: [number, number], to: [number, number]) => {
-    const sameRow = from[0] === to[0];
-    const sameCol = from[1] === to[1];
-    if (!sameRow && !sameCol) {
-      const corner: [number, number] = [from[0], to[1]];
-      setState(s => ({
-        ...s,
-        wires: [
-          ...s.wires,
-          { from, to: corner, color: wireColor, side: currentSide },
-          { from: corner, to, color: wireColor, side: currentSide },
-        ],
-      }));
-    } else {
-      setState(s => ({
-        ...s,
-        wires: [...s.wires, { from, to, color: wireColor, side: currentSide }],
-      }));
-    }
+    setState(s => {
+      const wires = [...s.wires];
+
+      // 新しい配線の端点が既存配線の途中にあれば、その配線を分割する
+      const splitAt = (point: [number, number]) => {
+        const [r, c] = point;
+        for (let i = 0; i < wires.length; i++) {
+          const w = wires[i];
+          if ((w.side || 'front') !== currentSide) continue;
+          if (isPointOnWire(r, c, w)) {
+            wires.splice(i, 1,
+              { from: w.from, to: point, color: w.color, side: w.side },
+              { from: point, to: w.to, color: w.color, side: w.side },
+            );
+            break;
+          }
+        }
+      };
+      // 同じ配線（from/toが同一または逆順）が同面に既に存在するかチェック
+      const isDuplicate = (a: [number, number], b: [number, number]) =>
+        wires.some(w =>
+          (w.side || 'front') === currentSide &&
+          ((w.from[0] === a[0] && w.from[1] === a[1] && w.to[0] === b[0] && w.to[1] === b[1]) ||
+           (w.from[0] === b[0] && w.from[1] === b[1] && w.to[0] === a[0] && w.to[1] === a[1]))
+        );
+
+      splitAt(from);
+      splitAt(to);
+
+      const sameRow = from[0] === to[0];
+      const sameCol = from[1] === to[1];
+      const newWires: typeof wires = [];
+      if (!sameRow && !sameCol) {
+        const corner: [number, number] = [from[0], to[1]];
+        splitAt(corner);
+        if (!isDuplicate(from, corner)) newWires.push({ from, to: corner, color: wireColor, side: currentSide });
+        if (!isDuplicate(corner, to)) newWires.push({ from: corner, to, color: wireColor, side: currentSide });
+      } else {
+        if (!isDuplicate(from, to)) newWires.push({ from, to, color: wireColor, side: currentSide });
+      }
+
+      if (newWires.length === 0) {
+        notify('同じ配線が既に存在します', 'error');
+        return s;
+      }
+
+      return { ...s, wires: [...wires, ...newWires] };
+    });
     setStatusMessage(`配線完了: 行${from[0]+1},列${from[1]+1} → 行${to[0]+1},列${to[1]+1}`);
-  }, [wireColor, currentSide]);
+  }, [wireColor, currentSide, notify]);
 
   const setHoleLabel = useCallback((r: number, c: number, label: string) => {
     setState(s => {
