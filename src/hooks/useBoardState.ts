@@ -11,6 +11,21 @@ import {
 } from '../utils/board';
 
 const STORAGE_KEY = 'universal-board-state';
+const TEMPLATE_STORAGE_KEY = 'universal-board-templates';
+
+function loadCustomTemplates(): ComponentTemplate[] {
+  try {
+    const json = localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    if (!json) return [];
+    return JSON.parse(json) as ComponentTemplate[];
+  } catch {
+    return [];
+  }
+}
+
+function loadTemplates(): ComponentTemplate[] {
+  return [...DEFAULT_TEMPLATES, ...loadCustomTemplates()];
+}
 
 const initialState: BoardState = {
   cols: 30,
@@ -18,7 +33,7 @@ const initialState: BoardState = {
   holes: {},
   components: [],
   wires: [],
-  templates: [...DEFAULT_TEMPLATES],
+  templates: loadTemplates(),
 };
 
 function loadSavedState(): BoardState {
@@ -26,12 +41,11 @@ function loadSavedState(): BoardState {
     const json = localStorage.getItem(STORAGE_KEY);
     if (!json) return initialState;
     const data = JSON.parse(json) as BoardState;
-    const customTemplates = data.templates?.filter(
-      t => !DEFAULT_TEMPLATES.find(d => d.id === t.id)
-    ) || [];
+    // localStorage の基板データにテンプレートが含まれていても無視し、
+    // テンプレートは独立したストレージから読み込む
     return {
       ...data,
-      templates: [...DEFAULT_TEMPLATES, ...customTemplates],
+      templates: loadTemplates(),
     };
   } catch {
     return initialState;
@@ -41,14 +55,27 @@ function loadSavedState(): BoardState {
 export function useBoardState() {
   const [state, setState] = useState<BoardState>(loadSavedState);
 
-  // localStorage への自動保存
+  // localStorage への自動保存 (基板データ: テンプレートを除外)
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const { templates: _, ...boardData } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(boardData));
     } catch {
       // quota exceeded or private browsing
     }
   }, [state]);
+
+  // localStorage への自動保存 (カスタムテンプレート)
+  useEffect(() => {
+    try {
+      const customTemplates = state.templates.filter(
+        t => !DEFAULT_TEMPLATES.find(d => d.id === t.id)
+      );
+      localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(customTemplates));
+    } catch {
+      // quota exceeded or private browsing
+    }
+  }, [state.templates]);
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [currentTool, setCurrentTool] = useState<ToolType>('select');
   const [wireStart, setWireStart] = useState<[number, number] | null>(null);
@@ -346,11 +373,7 @@ export function useBoardState() {
   const resetBoard = useCallback(() => {
     setState(s => ({
       ...initialState,
-      // カスタムテンプレートは保持
-      templates: [
-        ...DEFAULT_TEMPLATES,
-        ...s.templates.filter(t => !DEFAULT_TEMPLATES.find(d => d.id === t.id)),
-      ],
+      templates: s.templates,
     }));
     setSelectedComponentId(null);
     setWireStart(null);
@@ -358,7 +381,8 @@ export function useBoardState() {
   }, [notify]);
 
   const saveProject = useCallback(() => {
-    const data = JSON.stringify(state, null, 2);
+    const { templates: _, ...boardData } = state;
+    const data = JSON.stringify(boardData, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -371,19 +395,29 @@ export function useBoardState() {
   const loadProject = useCallback((json: string) => {
     try {
       const data = JSON.parse(json) as BoardState;
-      const customTemplates = data.templates?.filter(
-        t => !DEFAULT_TEMPLATES.find(d => d.id === t.id)
-      ) || [];
+      const currentTemplates = state.templates;
+
+      // 基板内の部品が参照するテンプレートが存在するか確認
+      const missingTemplates = (data.components || [])
+        .map(c => c.templateId)
+        .filter((id, i, arr) => arr.indexOf(id) === i) // unique
+        .filter(id => !currentTemplates.find(t => t.id === id));
+
+      if (missingTemplates.length > 0) {
+        notify(`テンプレートが見つかりません: ${missingTemplates.join(', ')}`, 'error');
+        return;
+      }
+
       setState({
         ...data,
-        templates: [...DEFAULT_TEMPLATES, ...customTemplates],
+        templates: currentTemplates,
       });
       setSelectedComponentId(null);
       notify('プロジェクトを読み込みました', 'success');
     } catch {
       notify('読み込みエラー', 'error');
     }
-  }, [notify]);
+  }, [notify, state.templates]);
 
   const exportImage = useCallback((canvas: HTMLCanvasElement) => {
     const a = document.createElement('a');
