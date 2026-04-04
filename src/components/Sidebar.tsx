@@ -11,6 +11,9 @@ import {
   Cluster,
   ControlledActionDialog,
   Fieldset,
+  FaPencilIcon,
+  FaArrowRotateRightIcon,
+  FaTrashCanIcon,
 } from "smarthr-ui";
 import {
   DndContext,
@@ -417,7 +420,6 @@ export default function Sidebar(props: Props) {
                 );
                 const color = tpl?.color || "#888";
                 const isSelected = selectedComponentId === comp.id;
-                const rot = comp.rotation ? ` ${comp.rotation}°` : "";
                 const isEditing = editingCompId === comp.id;
                 return (
                   <div
@@ -451,7 +453,7 @@ export default function Sidebar(props: Props) {
                       />
                     ) : (
                       <Text size="S" className={styles.compName}>
-                        {comp.name} ({comp.row + 1},{comp.col + 1}){rot}
+                        {comp.name} ({comp.row + 1},{comp.col + 1})
                       </Text>
                     )}
                     <Cluster gap={0} align="center">
@@ -464,7 +466,7 @@ export default function Sidebar(props: Props) {
                           setEditingName(comp.name);
                         }}
                       >
-                        ✎
+                         <FaPencilIcon alt="名前変更" />
                       </button>
                       <button
                         className={styles.actBtn}
@@ -474,7 +476,7 @@ export default function Sidebar(props: Props) {
                           props.onRotateComponent(comp.id);
                         }}
                       >
-                        ↻
+                        <FaArrowRotateRightIcon alt="回転" />
                       </button>
                       <button
                         className={styles.actBtn}
@@ -484,7 +486,7 @@ export default function Sidebar(props: Props) {
                           props.onRemoveComponent(comp.id);
                         }}
                       >
-                        ×
+                        <FaTrashCanIcon alt="削除" />
                       </button>
                     </Cluster>
                   </div>
