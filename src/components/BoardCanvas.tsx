@@ -25,6 +25,7 @@ interface Props {
   onZoom: (delta: number) => void;
   onMoveComponent: (id: string, row: number, col: number) => void;
   onMoveWireEndpoint: (wireIndex: number, endpoint: 'from' | 'to', newPos: [number, number]) => void;
+  scrollToCenterRef?: React.MutableRefObject<(() => void) | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
@@ -34,7 +35,7 @@ export default function BoardCanvas({
   state, currentTool, selectedComponentId,
   selectedTemplateId, placementRotation,
   wireStart, wireColor, currentSide, showNets, highlightedNet, hoveredHole, zoom,
-  onHoverHole, onClickHole, onRightClick, onZoom, onMoveComponent, onMoveWireEndpoint, canvasRef,
+  onHoverHole, onClickHole, onRightClick, onZoom, onMoveComponent, onMoveWireEndpoint, scrollToCenterRef, canvasRef,
 }: Props) {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [wireDragPreview, setWireDragPreview] = useState<{
@@ -279,8 +280,30 @@ export default function BoardCanvas({
     }
   }, [onZoom]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToCenter = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const scrollW = el.scrollWidth;
+    const scrollH = el.scrollHeight;
+    el.scrollLeft = (scrollW - el.clientWidth) / 2;
+    el.scrollTop = (scrollH - el.clientHeight) / 2;
+  }, []);
+
+  // Expose scrollToCenter to parent
+  useEffect(() => {
+    if (scrollToCenterRef) scrollToCenterRef.current = scrollToCenter;
+  }, [scrollToCenter, scrollToCenterRef]);
+
+  // Center on mount and zoom change
+  useEffect(() => {
+    scrollToCenter();
+  }, [scrollToCenter, zoom]);
+
   const canvasW = BOARD_PAD * 2 + state.cols * HOLE_SPACING;
   const canvasH = BOARD_PAD * 2 + state.rows * HOLE_SPACING;
+  const MARGIN = 800; // extra scroll margin around the board
 
   // Change cursor when hovering over a component in select mode
   const cursorStyle = currentTool === 'select' && hoveredHole &&
@@ -288,10 +311,10 @@ export default function BoardCanvas({
     ? 'grab' : undefined;
 
   return (
-    <div className={styles.container} onWheel={handleWheel}>
+    <div ref={containerRef} className={styles.container} onWheel={handleWheel}>
       <div className={styles.scroller} style={{
-        width: `max(100%, ${canvasW * zoom + 80}px)`,
-        height: `max(100%, ${canvasH * zoom + 80}px)`,
+        width: canvasW * zoom + MARGIN * 2,
+        height: canvasH * zoom + MARGIN * 2,
       }}>
         <div className={styles.wrapper} style={{
           width: canvasW * zoom,

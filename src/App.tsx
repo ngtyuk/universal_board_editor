@@ -27,6 +27,7 @@ export default function App() {
   >(null);
   const [zoom, setZoom] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const scrollToCenterRef = useRef<(() => void) | null>(null);
 
   const ZOOM_MIN = 0.3;
   const ZOOM_MAX = 3;
@@ -270,6 +271,9 @@ export default function App() {
               <Button size="s" variant="secondary" onClick={() => setZoom(1)}>
                 1:1
               </Button>
+              <Button size="s" variant="secondary" onClick={() => scrollToCenterRef.current?.()}>
+                中央に戻す
+              </Button>
             </Cluster>
           </div>
           <div className="board-area">
@@ -350,6 +354,7 @@ export default function App() {
               onZoom={handleZoom}
               onMoveComponent={board.moveComponent}
               onMoveWireEndpoint={board.moveWireEndpoint}
+              scrollToCenterRef={scrollToCenterRef}
               canvasRef={canvasRef}
             />
           </div>
