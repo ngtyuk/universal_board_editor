@@ -16,6 +16,7 @@ interface Props {
   wireColor: string;
   currentSide: BoardSide;
   showNets: boolean;
+  highlightedNet: [number, number][] | null;
   hoveredHole: [number, number] | null;
   zoom: number;
   onHoverHole: (hole: [number, number] | null) => void;
@@ -32,7 +33,7 @@ const DRAG_THRESHOLD = 4; // px before drag starts
 export default function BoardCanvas({
   state, currentTool, selectedComponentId,
   selectedTemplateId, placementRotation,
-  wireStart, wireColor, currentSide, showNets, hoveredHole, zoom,
+  wireStart, wireColor, currentSide, showNets, highlightedNet, hoveredHole, zoom,
   onHoverHole, onClickHole, onRightClick, onZoom, onMoveComponent, onMoveWireEndpoint, canvasRef,
 }: Props) {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
@@ -85,9 +86,10 @@ export default function BoardCanvas({
       dragPreview: activePreview,
       wireDragPreview,
       showNets,
+      highlightedNet,
       side: currentSide,
     });
-  }, [state, hoveredHole, wireStart, wireColor, selectedComponentId, currentTool, canvasRef, activePreview, wireDragPreview, showNets, currentSide]);
+  }, [state, hoveredHole, wireStart, wireColor, selectedComponentId, currentTool, canvasRef, activePreview, wireDragPreview, showNets, highlightedNet, currentSide]);
 
   const logicalCoordsFromMouse = useCallback((e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     if (!canvasRef.current) return null;

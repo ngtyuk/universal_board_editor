@@ -161,6 +161,7 @@ export interface DrawOptions {
   dragPreview?: DragPreview | null;
   wireDragPreview?: WireDragPreview | null;
   showNets?: boolean;
+  highlightedNet?: [number, number][] | null;
   side: BoardSide;
 }
 
@@ -418,6 +419,19 @@ export function drawBoard(
       ctx.fillStyle = wire.color || '#ff6b6b';
       ctx.fill();
       ctx.restore();
+    }
+  }
+
+  // Highlighted net (from sidebar click)
+  if (opts.highlightedNet && opts.highlightedNet.length > 0) {
+    for (const [cr, cc] of opts.highlightedNet) {
+      const x = BOARD_PAD + cc * HOLE_SPACING + HOLE_SPACING / 2;
+      const y = BOARD_PAD + cr * HOLE_SPACING + HOLE_SPACING / 2;
+      ctx.beginPath();
+      ctx.arc(x, y, HOLE_RADIUS + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,200,255,0.8)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
     }
   }
 

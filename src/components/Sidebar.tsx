@@ -36,7 +36,7 @@ interface Props {
   onSetWireColor: (color: string) => void;
   onSelectTemplate: (id: string) => void;
   onSetPlacementRotation: (r: number) => void;
-  onSelectComponent: (id: string) => void;
+  onSelectComponent: (id: string | null) => void;
   onRotateComponent: (id: string) => void;
   onRemoveComponent: (id: string) => void;
   onRenameComponent: (id: string, name: string) => void;
@@ -52,6 +52,8 @@ interface Props {
   projectMemo: string;
   onSetProjectName: (name: string) => void;
   onSetProjectMemo: (memo: string) => void;
+  highlightedNet: [number, number][] | null;
+  onHighlightNet: (net: [number, number][] | null) => void;
 }
 
 export default function Sidebar(props: Props) {
@@ -77,6 +79,7 @@ export default function Sidebar(props: Props) {
 
   const [editingCompId, setEditingCompId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedTpl = state.templates.find((t) => t.id === selectedTemplateId);
 
@@ -301,7 +304,7 @@ export default function Sidebar(props: Props) {
       {/* Placed Components */}
       <Base padding={1} overflow="visible" className={styles.panel}>
         <Stack gap={0.5}>
-          <Heading type="blockTitle">配置済み部品</Heading>
+          <Heading type="blockTitle">配置済み部品リスト</Heading>
           {state.components.length === 0 ? (
             <Text size="S" color="TEXT_GREY">
               部品なし
@@ -320,7 +323,17 @@ export default function Sidebar(props: Props) {
                   <div
                     key={comp.id}
                     className={`${styles.componentItem} ${isSelected ? styles.componentItemSelected : ""}`}
-                    onClick={() => props.onSelectComponent(comp.id)}
+                    onClick={() => {
+                      if (isSelected) {
+                        // Delay deselect so double-click can cancel it
+                        clickTimerRef.current = setTimeout(() => {
+                          clickTimerRef.current = null;
+                          props.onSelectComponent(null);
+                        }, 200);
+                      } else {
+                        props.onSelectComponent(comp.id);
+                      }
+                    }}
                   >
                     <span
                       className={styles.colorDot}
@@ -352,6 +365,10 @@ export default function Sidebar(props: Props) {
                         className={styles.compName}
                         onDoubleClick={(e) => {
                           e.stopPropagation();
+                          if (clickTimerRef.current) {
+                            clearTimeout(clickTimerRef.current);
+                            clickTimerRef.current = null;
+                          }
                           setEditingCompId(comp.id);
                           setEditingName(comp.name);
                         }}
@@ -403,7 +420,7 @@ export default function Sidebar(props: Props) {
       {/* Wire List (grouped by net) */}
       <Base padding={1} overflow="visible" className={styles.panel}>
         <Stack gap={0.5}>
-          <Heading type="blockTitle">配線</Heading>
+          <Heading type="blockTitle">配線リスト</Heading>
           {state.wires.length === 0 ? (
             <Text size="S" color="TEXT_GREY">配線なし</Text>
           ) : (
@@ -435,8 +452,16 @@ export default function Sidebar(props: Props) {
                     }
                     const parts = [...pins, ...otherHoles];
                     if (parts.length === 0) return null;
+                    const isActive = props.highlightedNet != null &&
+                      net.length === props.highlightedNet.length &&
+                      net.every(([r, c]) => props.highlightedNet!.some(([hr, hc]) => hr === r && hc === c));
                     return (
-                      <div key={i} className={styles.wireItem}>
+                      <div
+                        key={i}
+                        className={`${styles.wireItem} ${isActive ? styles.wireItemSelected : ""}`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => props.onHighlightNet(isActive ? null : net)}
+                      >
                         <Text size="S" className={styles.wireDesc}>
                           {pins.length >= 2
                             ? pins.join(' ↔ ')

@@ -103,6 +103,10 @@
   background: #fff;
   border: 1px solid #e8e6e3;
 }
+.wireItemSelected {
+  border-color: #0077c7 !important;
+  background: #e8f4fd !important;
+}
 .wireColorDot {
   width: 8px;
   height: 8px;

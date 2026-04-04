@@ -20,6 +20,7 @@ export default function App() {
   const board = useBoardState();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredHole, setHoveredHole] = useState<[number, number] | null>(null);
+  const [highlightedNet, setHighlightedNet] = useState<[number, number][] | null>(null);
   const [zoom, setZoom] = useState(1);
 
   const ZOOM_MIN = 0.3;
@@ -50,6 +51,7 @@ export default function App() {
 
   const handleClickHole = useCallback(
     (r: number, c: number, e: React.MouseEvent) => {
+      setHighlightedNet(null);
       switch (board.currentTool) {
         case "select": {
           const comp = getComponentAtHole(
@@ -242,6 +244,8 @@ export default function App() {
           onImportTemplates={board.importTemplates}
           onSetProjectName={board.setProjectName}
           onSetProjectMemo={board.setProjectMemo}
+          highlightedNet={highlightedNet}
+          onHighlightNet={setHighlightedNet}
         />
         <div className="main">
           <div className="board-header">
@@ -318,6 +322,7 @@ export default function App() {
               wireColor={board.wireColor}
               currentSide={board.currentSide}
               showNets={board.showNets}
+              highlightedNet={highlightedNet}
               hoveredHole={hoveredHole}
               zoom={zoom}
               onHoverHole={setHoveredHole}
