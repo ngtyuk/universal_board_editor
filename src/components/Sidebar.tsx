@@ -9,7 +9,6 @@ import {
   Stack,
   Cluster,
   ControlledActionDialog,
-  Fieldset,
   FaPencilIcon,
   FaArrowRotateRightIcon,
   FaTrashCanIcon,
@@ -43,7 +42,6 @@ type ConfirmDialog = {
 interface Props {
   state: BoardState;
   selectedComponentId: string | null;
-  onResizeBoard: (cols: number, rows: number) => void;
   onSelectComponent: (id: string | null) => void;
   onRotateComponent: (id: string) => void;
   onRemoveComponent: (id: string) => void;
@@ -143,8 +141,6 @@ export default function Sidebar(props: Props) {
     selectedComponentId,
   } = props;
 
-  const [cols, setCols] = useState(state.cols);
-  const [rows, setRows] = useState(state.rows);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     open: false,
@@ -200,37 +196,6 @@ export default function Sidebar(props: Props) {
               onChange={(e) => props.onSetProjectMemo(e.target.value)}
             />
           </FormControl>
-        </Stack>
-      </Base>
-
-      {/* Board Size */}
-      <Base padding={1} overflow="visible" className={styles.panel}>
-        <Stack gap={0.5}>
-          <Fieldset legend="基板サイズ" className={styles.fieldset}>
-              <FormControl label="横 (列数)">
-                <Input
-                  type="number"
-                  value={cols}
-                  min={5}
-                  max={100}
-                  width="100%"
-                  onChange={(e) => setCols(Number(e.target.value))}
-                />
-              </FormControl>
-              <FormControl label="縦 (行数)">
-                <Input
-                  type="number"
-                  value={rows}
-                  min={5}
-                  max={100}
-                  width="100%"
-                  onChange={(e) => setRows(Number(e.target.value))}
-                />
-              </FormControl>
-          </Fieldset>
-          <Button size="s" onClick={() => props.onResizeBoard(cols, rows)} wide>
-            サイズ変更
-          </Button>
         </Stack>
       </Base>
 

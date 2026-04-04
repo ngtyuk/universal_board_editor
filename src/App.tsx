@@ -224,7 +224,6 @@ export default function App() {
           projectName={board.state.projectName || ""}
           projectMemo={board.state.projectMemo || ""}
           selectedComponentId={board.selectedComponentId}
-          onResizeBoard={board.resizeBoard}
           onSelectComponent={board.setSelectedComponentId}
           onRotateComponent={board.rotateComponent}
           onRemoveComponent={board.removeComponent}
@@ -302,6 +301,7 @@ export default function App() {
                 onDeleteTemplate={board.deleteTemplate}
                 onExportTemplates={board.exportTemplates}
                 onImportTemplates={board.importTemplates}
+                onResizeBoard={board.resizeBoard}
               />
             </div>
             <div className="side-toggle-overlay">

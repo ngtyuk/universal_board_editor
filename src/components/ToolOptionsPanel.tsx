@@ -1,8 +1,10 @@
-import { useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Button,
   FormControl,
+  Input,
   Select,
+  Fieldset,
   Base,
   Text,
   Stack,
@@ -25,6 +27,7 @@ interface Props {
   onDeleteTemplate: (id: string) => void;
   onExportTemplates: () => void;
   onImportTemplates: (json: string) => void;
+  onResizeBoard: (cols: number, rows: number) => void;
 }
 
 export default function ToolOptionsPanel(props: Props) {
@@ -35,6 +38,9 @@ export default function ToolOptionsPanel(props: Props) {
     placementRotation,
     wireColor,
   } = props;
+
+  const [cols, setCols] = useState(state.cols);
+  const [rows, setRows] = useState(state.rows);
 
   const templateFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,12 +69,51 @@ export default function ToolOptionsPanel(props: Props) {
     })),
   ];
 
+  if (currentTool === 'block') {
+    return (
+      <div className={styles.container}>
+        <Base padding={0.75} className={styles.panel}>
+          <Stack gap={0.5}>
+            <Fieldset legend="基板サイズ" className={styles.fieldset}>
+              <FormControl label="横 (列数)">
+                <Input
+                  type="number"
+                  value={cols}
+                  min={5}
+                  max={100}
+                  width="100%"
+                  onChange={(e) => setCols(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormControl label="縦 (行数)">
+                <Input
+                  type="number"
+                  value={rows}
+                  min={5}
+                  max={100}
+                  width="100%"
+                  onChange={(e) => setRows(Number(e.target.value))}
+                />
+              </FormControl>
+            </Fieldset>
+            <Button size="s" onClick={() => props.onResizeBoard(cols, rows)} wide>
+              サイズ変更
+            </Button>
+            <Text size="S" color="TEXT_GREY">
+              ホールをクリックして無効ホールを設定 / 解除
+            </Text>
+          </Stack>
+        </Base>
+      </div>
+    );
+  }
+
   if (currentTool === 'component') {
     return (
       <div className={styles.container}>
         <Base padding={0.75} className={styles.panel}>
           <Stack gap={0.5}>
-            <FormControl label="テンプレート">
+            <FormControl label="配置する部品テンプレート">
               <Select
                 options={templateOptions}
                 value={selectedTemplateId}

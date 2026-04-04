@@ -30,3 +30,9 @@
   border-color: #0077c7 !important;
   box-shadow: 0 0 0 2px rgba(0, 119, 199, 0.3);
 }
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
