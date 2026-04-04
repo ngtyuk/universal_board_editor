@@ -273,6 +273,14 @@ export function useBoardState() {
     }));
   }, [commitState]);
 
+  const reorderComponents = useCallback((ids: string[]) => {
+    commitState(s => {
+      const byId = new Map(s.components.map(c => [c.id, c]));
+      const reordered = ids.map(id => byId.get(id)).filter(Boolean) as typeof s.components;
+      return { ...s, components: reordered };
+    });
+  }, [commitState]);
+
   const moveComponent = useCallback((id: string, newRow: number, newCol: number) => {
     commitState(s => {
       const comp = s.components.find(c => c.id === id);
@@ -654,6 +662,7 @@ export function useBoardState() {
     placeComponent,
     removeComponent,
     renameComponent,
+    reorderComponents,
     rotateComponent,
     moveComponent,
     addWire,

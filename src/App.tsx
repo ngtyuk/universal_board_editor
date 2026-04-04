@@ -230,6 +230,7 @@ export default function App() {
           onRotateComponent={board.rotateComponent}
           onRemoveComponent={board.removeComponent}
           onRenameComponent={board.renameComponent}
+          onReorderComponents={board.reorderComponents}
           onOpenTemplateEditor={(tpl) =>
             setTemplateEditor({ visible: true, tpl: tpl || null })
           }

@@ -12,7 +12,22 @@ import {
   ControlledActionDialog,
   Fieldset,
 } from "smarthr-ui";
-import type { BoardState, ToolType, ComponentTemplate } from "../types";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { BoardState, ToolType, ComponentTemplate, PlacedComponent } from "../types";
 import { WIRE_COLORS } from "../utils/constants";
 import { getComponentPinPositions, getAllNets } from "../utils/board";
 import styles from "./Sidebar.module.css";
@@ -40,6 +55,7 @@ interface Props {
   onRotateComponent: (id: string) => void;
   onRemoveComponent: (id: string) => void;
   onRenameComponent: (id: string, name: string) => void;
+  onReorderComponents: (ids: string[]) => void;
   onOpenTemplateEditor: (tpl?: ComponentTemplate) => void;
   onDeleteTemplate: (id: string) => void;
   onResetBoard: () => void;
@@ -54,6 +70,82 @@ interface Props {
   onSetProjectMemo: (memo: string) => void;
   highlightedNet: [number, number][] | null;
   onHighlightNet: (net: [number, number][] | null) => void;
+}
+
+function SortableCompItem({ comp, tpl, onMoveUp, onMoveDown, isFirst, isLast }: {
+  comp: PlacedComponent;
+  tpl: ComponentTemplate | undefined;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: comp.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const color = tpl?.color || "#888";
+  return (
+    <div ref={setNodeRef} style={style} className={styles.componentItem} {...attributes} {...listeners}>
+      <span className={styles.colorDot} style={{ background: color }} />
+      <Text size="S" className={styles.compName}>
+        {comp.name}
+      </Text>
+      <Cluster gap={0} align="center">
+        <button className={styles.actBtn} title="上へ" disabled={isFirst} onClick={(e) => { e.stopPropagation(); onMoveUp(); }}>↑</button>
+        <button className={styles.actBtn} title="下へ" disabled={isLast} onClick={(e) => { e.stopPropagation(); onMoveDown(); }}>↓</button>
+      </Cluster>
+    </div>
+  );
+}
+
+function ReorderableComponentList({ components, templates, onReorder }: {
+  components: PlacedComponent[];
+  templates: ComponentTemplate[];
+  onReorder: (ids: string[]) => void;
+}) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const ids = components.map(c => c.id);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(active.id as string);
+    const newIndex = ids.indexOf(over.id as string);
+    onReorder(arrayMove(ids, oldIndex, newIndex));
+  }, [ids, onReorder]);
+
+  const handleMoveUp = useCallback((index: number) => {
+    if (index <= 0) return;
+    onReorder(arrayMove(ids, index, index - 1));
+  }, [ids, onReorder]);
+
+  const handleMoveDown = useCallback((index: number) => {
+    if (index >= ids.length - 1) return;
+    onReorder(arrayMove(ids, index, index + 1));
+  }, [ids, onReorder]);
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <Stack gap={0.25}>
+          {components.map((comp, i) => (
+            <SortableCompItem
+              key={comp.id}
+              comp={comp}
+              tpl={templates.find(t => t.id === comp.templateId)}
+              onMoveUp={() => handleMoveUp(i)}
+              onMoveDown={() => handleMoveDown(i)}
+              isFirst={i === 0}
+              isLast={i === components.length - 1}
+            />
+          ))}
+        </Stack>
+      </SortableContext>
+    </DndContext>
+  );
 }
 
 export default function Sidebar(props: Props) {
@@ -79,7 +171,7 @@ export default function Sidebar(props: Props) {
 
   const [editingCompId, setEditingCompId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [reorderMode, setReorderMode] = useState(false);
 
   const selectedTpl = state.templates.find((t) => t.id === selectedTemplateId);
 
@@ -304,11 +396,28 @@ export default function Sidebar(props: Props) {
       {/* Placed Components */}
       <Base padding={1} overflow="visible" className={styles.panel}>
         <Stack gap={0.5}>
-          <Heading type="blockTitle">配置済み部品リスト</Heading>
+          <Cluster justify="space-between" align="center">
+            <Heading type="blockTitle">配置済み部品リスト</Heading>
+            {state.components.length > 1 && (
+              <Button
+                size="s"
+                variant={reorderMode ? "primary" : "secondary"}
+                onClick={() => setReorderMode(!reorderMode)}
+              >
+                {reorderMode ? "完了" : "並替"}
+              </Button>
+            )}
+          </Cluster>
           {state.components.length === 0 ? (
             <Text size="S" color="TEXT_GREY">
               部品なし
             </Text>
+          ) : reorderMode ? (
+            <ReorderableComponentList
+              components={state.components}
+              templates={state.templates}
+              onReorder={props.onReorderComponents}
+            />
           ) : (
             <Stack gap={0.25}>
               {state.components.map((comp) => {
@@ -323,17 +432,7 @@ export default function Sidebar(props: Props) {
                   <div
                     key={comp.id}
                     className={`${styles.componentItem} ${isSelected ? styles.componentItemSelected : ""}`}
-                    onClick={() => {
-                      if (isSelected) {
-                        // Delay deselect so double-click can cancel it
-                        clickTimerRef.current = setTimeout(() => {
-                          clickTimerRef.current = null;
-                          props.onSelectComponent(null);
-                        }, 200);
-                      } else {
-                        props.onSelectComponent(comp.id);
-                      }
-                    }}
+                    onClick={() => props.onSelectComponent(isSelected ? null : comp.id)}
                   >
                     <span
                       className={styles.colorDot}
@@ -360,19 +459,7 @@ export default function Sidebar(props: Props) {
                         }}
                       />
                     ) : (
-                      <Text
-                        size="S"
-                        className={styles.compName}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          if (clickTimerRef.current) {
-                            clearTimeout(clickTimerRef.current);
-                            clickTimerRef.current = null;
-                          }
-                          setEditingCompId(comp.id);
-                          setEditingName(comp.name);
-                        }}
-                      >
+                      <Text size="S" className={styles.compName}>
                         {comp.name} ({comp.row + 1},{comp.col + 1}){rot}
                       </Text>
                     )}
