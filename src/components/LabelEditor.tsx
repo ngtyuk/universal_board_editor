@@ -32,7 +32,6 @@ export default function LabelEditor({ visible, x, y, initialLabel, onApply, onCl
         <FormControl label="ホールラベル">
           <Input
             ref={inputRef}
-            size="s"
             value={value}
             placeholder="例: GND"
             width="100%"
