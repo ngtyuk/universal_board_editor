@@ -58,7 +58,6 @@ export function useBoardState() {
   const [state, setState] = useState<BoardState>(loadSavedState);
   const historyRef = useRef<BoardState[]>([]);
   const historyIndexRef = useRef(-1);
-  const isUndoRedoRef = useRef(false);
 
   // 初回マウント時に現在の state を履歴に入れる
   useEffect(() => {
@@ -69,18 +68,20 @@ export function useBoardState() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // setState をラップして履歴を記録する
+  // state 変化時に履歴を記録（undo/redo は同一参照なのでスキップされる）
+  useEffect(() => {
+    if (historyRef.current.length === 0) return;
+    const idx = historyIndexRef.current;
+    if (historyRef.current[idx] === state) return;
+    historyRef.current = [...historyRef.current.slice(0, idx + 1), state].slice(-HISTORY_MAX);
+    historyIndexRef.current = historyRef.current.length - 1;
+  }, [state]);
+
+  // setState をラップしてバリデーションのみ行う（履歴記録は useEffect 側）
   const commitState: typeof setState = useCallback((action) => {
     setState(prev => {
       const next = typeof action === 'function' ? action(prev) : action;
-      if (next === prev) return prev; // バリデーション失敗で変更なし
-      if (!isUndoRedoRef.current) {
-        const history = historyRef.current;
-        const idx = historyIndexRef.current;
-        // 途中から分岐した場合、index 以降を切り捨て
-        historyRef.current = [...history.slice(0, idx + 1), next].slice(-HISTORY_MAX);
-        historyIndexRef.current = historyRef.current.length - 1;
-      }
+      if (next === prev) return prev;
       return next;
     });
   }, []);
@@ -88,20 +89,16 @@ export function useBoardState() {
   const undo = useCallback(() => {
     const idx = historyIndexRef.current;
     if (idx <= 0) return;
-    isUndoRedoRef.current = true;
     historyIndexRef.current = idx - 1;
     setState(historyRef.current[idx - 1]);
-    isUndoRedoRef.current = false;
     setStatusMessage(`元に戻しました (${idx - 1}/${historyRef.current.length - 1})`);
   }, []);
 
   const redo = useCallback(() => {
     const idx = historyIndexRef.current;
     if (idx >= historyRef.current.length - 1) return;
-    isUndoRedoRef.current = true;
     historyIndexRef.current = idx + 1;
     setState(historyRef.current[idx + 1]);
-    isUndoRedoRef.current = false;
     setStatusMessage(`やり直しました (${idx + 1}/${historyRef.current.length - 1})`);
   }, []);
 

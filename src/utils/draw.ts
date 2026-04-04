@@ -172,8 +172,12 @@ export function drawBoard(
 ) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  const w = BOARD_PAD * 2 + state.cols * HOLE_SPACING;
-  const h = BOARD_PAD * 2 + state.rows * HOLE_SPACING;
+
+  // drawComponent がピンラベルを holes に書き込むため、元の state を汚染しないようコピーを使う
+  const drawState = { ...state, holes: { ...state.holes } };
+
+  const w = BOARD_PAD * 2 + drawState.cols * HOLE_SPACING;
+  const h = BOARD_PAD * 2 + drawState.rows * HOLE_SPACING;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = w * dpr;
   canvas.height = h * dpr;
@@ -196,8 +200,8 @@ export function drawBoard(
 
   // Grid
   ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  for (let r = 0; r < state.rows; r++) {
-    for (let c = 0; c < state.cols; c++) {
+  for (let r = 0; r < drawState.rows; r++) {
+    for (let c = 0; c < drawState.cols; c++) {
       const x = BOARD_PAD + c * HOLE_SPACING + HOLE_SPACING / 2;
       const y = BOARD_PAD + r * HOLE_SPACING + HOLE_SPACING / 2;
       ctx.beginPath();
@@ -208,8 +212,8 @@ export function drawBoard(
 
   // Build pin position set for quick lookup (all sides - pins are shared)
   const pinHoles = new Set<string>();
-  for (const comp of state.components) {
-    const tpl = state.templates.find(t => t.id === comp.templateId);
+  for (const comp of drawState.components) {
+    const tpl = drawState.templates.find(t => t.id === comp.templateId);
     if (!tpl || !tpl.pins?.length) continue;
     const positions = getComponentPinPositions(comp, tpl);
     for (let i = 0; i < positions.length && i < tpl.pins.length; i++) {
@@ -219,7 +223,7 @@ export function drawBoard(
 
   // Build wired-hole color map
   const wiredHoleColor = new Map<string, string>();
-  for (const wire of state.wires) {
+  for (const wire of drawState.wires) {
     const color = wire.color || '#ff6b6b';
     for (const [r, c] of [wire.from, wire.to]) {
       wiredHoleColor.set(`${r},${c}`, color);
@@ -241,40 +245,40 @@ export function drawBoard(
 
   // --- Draw inactive side (dimmed) ---
   const inactiveSide: BoardSide = isBack ? 'front' : 'back';
-  const inactiveComps = state.components.filter(c => (c.side || 'front') === inactiveSide);
-  const inactiveWires = state.wires.filter(w => (w.side || 'front') === inactiveSide);
+  const inactiveComps = drawState.components.filter(c => (c.side || 'front') === inactiveSide);
+  const inactiveWires = drawState.wires.filter(w => (w.side || 'front') === inactiveSide);
 
   if (inactiveComps.length > 0 || inactiveWires.length > 0) {
     ctx.save();
     ctx.globalAlpha = 0.2;
     for (const wire of inactiveWires) drawWire(ctx, wire);
     for (const comp of inactiveComps) {
-      const tpl = state.templates.find(t => t.id === comp.templateId);
-      if (tpl) drawComponent(ctx, comp, tpl, false, state, isBack);
+      const tpl = drawState.templates.find(t => t.id === comp.templateId);
+      if (tpl) drawComponent(ctx, comp, tpl, false, drawState, isBack);
     }
     ctx.restore();
   }
 
   // --- Draw active side ---
-  const activeComps = state.components.filter(c => (c.side || 'front') === opts.side);
-  const activeWires = state.wires.filter(w => (w.side || 'front') === opts.side);
+  const activeComps = drawState.components.filter(c => (c.side || 'front') === opts.side);
+  const activeWires = drawState.wires.filter(w => (w.side || 'front') === opts.side);
 
   for (const wire of activeWires) drawWire(ctx, wire);
   for (const comp of activeComps) {
-    const tpl = state.templates.find(t => t.id === comp.templateId);
+    const tpl = drawState.templates.find(t => t.id === comp.templateId);
     if (!tpl) continue;
     const isSel = opts.selectedComponentId === comp.id;
-    drawComponent(ctx, comp, tpl, isSel, state, isBack);
+    drawComponent(ctx, comp, tpl, isSel, drawState, isBack);
   }
 
   // Holes (shared between sides)
-  for (let r = 0; r < state.rows; r++) {
-    for (let c = 0; c < state.cols; c++) {
+  for (let r = 0; r < drawState.rows; r++) {
+    for (let c = 0; c < drawState.cols; c++) {
       const x = BOARD_PAD + c * HOLE_SPACING + HOLE_SPACING / 2;
       const y = BOARD_PAD + r * HOLE_SPACING + HOLE_SPACING / 2;
       const key = `${r},${c}`;
       const isPin = pinHoles.has(key);
-      const compAt = getComponentAtHole(r, c, state.components, state.templates);
+      const compAt = getComponentAtHole(r, c, drawState.components, drawState.templates);
 
       // 部品領域内でピンでないマスはホールを描画しない
       if (compAt && !isPin) continue;
@@ -314,9 +318,9 @@ export function drawBoard(
   }
 
   // Labels (shared, on top of holes) - need counter-flip for readability
-  for (let r = 0; r < state.rows; r++) {
-    for (let c = 0; c < state.cols; c++) {
-      const hole = state.holes[`${r},${c}`];
+  for (let r = 0; r < drawState.rows; r++) {
+    for (let c = 0; c < drawState.cols; c++) {
+      const hole = drawState.holes[`${r},${c}`];
       if (hole?.label) {
         const x = BOARD_PAD + c * HOLE_SPACING + HOLE_SPACING / 2;
         const y = BOARD_PAD + r * HOLE_SPACING + HOLE_SPACING / 2;
@@ -347,7 +351,7 @@ export function drawBoard(
     const gry = gy - HOLE_SPACING / 2 + 2;
 
     const inBounds = targetRow >= 0 && targetCol >= 0 &&
-      targetRow + dims.h <= state.rows && targetCol + dims.w <= state.cols;
+      targetRow + dims.h <= drawState.rows && targetCol + dims.w <= drawState.cols;
 
     ctx.save();
     ctx.globalAlpha = 0.5;
@@ -397,7 +401,7 @@ export function drawBoard(
   // Wire drag preview
   if (opts.wireDragPreview) {
     const { wireIndex, endpoint, targetHole } = opts.wireDragPreview;
-    const wire = state.wires[wireIndex];
+    const wire = drawState.wires[wireIndex];
     if (wire) {
       const fixedEnd = endpoint === 'from' ? wire.to : wire.from;
       const fx = BOARD_PAD + fixedEnd[1] * HOLE_SPACING + HOLE_SPACING / 2;
@@ -437,7 +441,7 @@ export function drawBoard(
 
   // Connected holes highlight
   if (opts.hoveredHole && opts.currentTool === 'select') {
-    const connected = getConnectedHoles(opts.hoveredHole[0], opts.hoveredHole[1], state.wires);
+    const connected = getConnectedHoles(opts.hoveredHole[0], opts.hoveredHole[1], drawState.wires);
     if (connected.length > 1) {
       for (const [cr, cc] of connected) {
         const x = BOARD_PAD + cc * HOLE_SPACING + HOLE_SPACING / 2;
@@ -458,7 +462,7 @@ export function drawBoard(
       '#00cec9', '#fab1a0', '#6c5ce7', '#55efc4', '#fdcb6e',
       '#e17055', '#0984e3', '#b2bec3', '#d63031', '#00b894',
     ];
-    const nets = getAllNets(state.wires);
+    const nets = getAllNets(drawState.wires);
     for (let ni = 0; ni < nets.length; ni++) {
       const color = NET_COLORS[ni % NET_COLORS.length];
       for (const [nr, nc] of nets[ni]) {
@@ -485,7 +489,7 @@ export function drawBoard(
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
 
-  for (let c = 0; c < state.cols; c++) {
+  for (let c = 0; c < drawState.cols; c++) {
     const x = BOARD_PAD + c * HOLE_SPACING + HOLE_SPACING / 2;
     const isHovered = opts.hoveredHole?.[1] === c;
     if (isHovered) ctx.fillStyle = '#ffd93d';
@@ -494,7 +498,7 @@ export function drawBoard(
   }
 
   ctx.textAlign = 'right';
-  for (let r = 0; r < state.rows; r++) {
+  for (let r = 0; r < drawState.rows; r++) {
     const y = BOARD_PAD + r * HOLE_SPACING + HOLE_SPACING / 2;
     const isHovered = opts.hoveredHole?.[0] === r;
     if (isHovered) ctx.fillStyle = '#ffd93d';
