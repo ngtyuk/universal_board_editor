@@ -102,24 +102,25 @@ function drawComponent(
   ctx.textBaseline = 'middle';
   const cx = x + (dims.w - 1) * HOLE_SPACING / 2;
   const cy = y + (dims.h - 1) * HOLE_SPACING / 2;
+  const sideLabel = (comp.side || 'front') === 'back' ? '裏面' : '表面';
+  let infoY = 10;
+  if (rotation !== 0) infoY += 10;
   if (mirrored) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.scale(-1, 1);
     ctx.fillText(comp.name || tpl.name, 0, 0);
-    if (rotation !== 0) {
-      ctx.font = '7px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillText(`${rotation}°`, 0, 10);
-    }
+    ctx.font = '7px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    if (rotation !== 0) ctx.fillText(`${rotation}°`, 0, 10);
+    ctx.fillText(sideLabel, 0, infoY);
     ctx.restore();
   } else {
     ctx.fillText(comp.name || tpl.name, cx, cy);
-    if (rotation !== 0) {
-      ctx.font = '7px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillText(`${rotation}°`, cx, cy + 10);
-    }
+    ctx.font = '7px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    if (rotation !== 0) ctx.fillText(`${rotation}°`, cx, cy + 10);
+    ctx.fillText(sideLabel, cx, cy + infoY);
   }
   ctx.restore();
 

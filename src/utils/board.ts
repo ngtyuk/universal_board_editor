@@ -43,8 +43,11 @@ export function getComponentPinPositions(
   tpl: ComponentTemplate,
 ): [number, number][] {
   const baseOffsets = getBasePinOffsets(tpl);
+  const isBack = (comp.side || 'front') === 'back';
   return baseOffsets.map(([dr, dc]) => {
-    const [rdr, rdc] = rotatePinOffset(dr, dc, tpl.w, tpl.h, comp.rotation);
+    // 裏面の部品はピン列を水平反転（部品を裏返した状態）
+    const mdc = isBack ? tpl.w - 1 - dc : dc;
+    const [rdr, rdc] = rotatePinOffset(dr, mdc, tpl.w, tpl.h, comp.rotation);
     return [comp.row + rdr, comp.col + rdc];
   });
 }
