@@ -58,9 +58,10 @@ const COMMON_SHORTCUTS = [
 
 interface Props {
   currentTool: ToolType;
+  sidebarOpen: boolean;
 }
 
-export default function HelpPanel({ currentTool }: Props) {
+export default function HelpPanel({ currentTool, sidebarOpen }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const toolHelp = TOOL_HELP[currentTool];
 
@@ -80,7 +81,7 @@ export default function HelpPanel({ currentTool }: Props) {
       heading="操作ガイド"
       size="S"
       bottom={48}
-      left={12}
+      left={sidebarOpen ? 312 : 60}
       onClickClose={() => setIsOpen(false)}
       onPressEscape={() => setIsOpen(false)}
     >

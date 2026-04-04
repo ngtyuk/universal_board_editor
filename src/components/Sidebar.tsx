@@ -12,6 +12,8 @@ import {
   FaPencilIcon,
   FaArrowRotateRightIcon,
   FaTrashCanIcon,
+  FaAnglesLeftIcon,
+  FaAnglesRightIcon,
 } from "smarthr-ui";
 import {
   DndContext,
@@ -57,6 +59,8 @@ interface Props {
   onSetProjectMemo: (memo: string) => void;
   highlightedNet: [number, number][] | null;
   onHighlightNet: (net: [number, number][] | null) => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
 function SortableCompItem({ comp, tpl, onMoveUp, onMoveDown, isFirst, isLast }: {
@@ -168,12 +172,24 @@ export default function Sidebar(props: Props) {
     [onLoad],
   );
 
+  if (!props.isOpen) {
+    return (
+      <div className={styles.sidebarClosed}>
+        <button className={styles.toggleBtn} onClick={props.onToggle} title="サイドバーを開く">
+          <FaAnglesRightIcon alt="開く" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.sidebar}>
       <Stack gap={0.25}>
-        <Heading type="sectionTitle" className={styles.title}>
-          Universal Board Editor
-        </Heading>
+        <Cluster justify="space-between" align="center">
+          <Heading type="sectionTitle" className={styles.title}>
+            Universal Board Editor
+          </Heading>
+        </Cluster>
       </Stack>
 
       {/* Project Info */}
@@ -420,6 +436,12 @@ export default function Sidebar(props: Props) {
           />
         </Stack>
       </Base>
+      <div className={styles.toggleBtnWrapper}>
+        <button className={styles.toggleBtn} onClick={props.onToggle} title="サイドバーを閉じる">
+          <FaAnglesLeftIcon alt="閉じる" />
+        </button>
+      </div>
+
       <ControlledActionDialog
         isOpen={confirmDialog.open}
         heading={confirmDialog.title}

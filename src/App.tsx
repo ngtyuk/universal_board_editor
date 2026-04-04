@@ -26,6 +26,7 @@ export default function App() {
     [number, number][] | null
   >(null);
   const [zoom, setZoom] = useState(1);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const ZOOM_MIN = 0.3;
   const ZOOM_MAX = 3;
@@ -239,6 +240,8 @@ export default function App() {
           onSetProjectMemo={board.setProjectMemo}
           highlightedNet={highlightedNet}
           onHighlightNet={setHighlightedNet}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen((v) => !v)}
         />
         <div className="main">
           <div className="board-header">
@@ -327,7 +330,7 @@ export default function App() {
               </div>
             )}
 
-            <HelpPanel currentTool={board.currentTool} />
+            <HelpPanel currentTool={board.currentTool} sidebarOpen={sidebarOpen} />
             <BoardCanvas
               state={board.state}
               currentTool={board.currentTool}
