@@ -398,15 +398,6 @@ export default function Sidebar(props: Props) {
         <Stack gap={0.5}>
           <Cluster justify="space-between" align="center">
             <Heading type="blockTitle">配置済み部品リスト</Heading>
-            {state.components.length > 1 && (
-              <Button
-                size="s"
-                variant={reorderMode ? "primary" : "secondary"}
-                onClick={() => setReorderMode(!reorderMode)}
-              >
-                {reorderMode ? "完了" : "並替"}
-              </Button>
-            )}
           </Cluster>
           {state.components.length === 0 ? (
             <Text size="S" color="TEXT_GREY">
@@ -501,6 +492,15 @@ export default function Sidebar(props: Props) {
               })}
             </Stack>
           )}
+                      {state.components.length > 1 && (
+              <Button
+                size="s"
+                variant={reorderMode ? "primary" : "secondary"}
+                onClick={() => setReorderMode(!reorderMode)}
+              >
+                {reorderMode ? "完了" : "並び替え"}
+              </Button>
+            )}
         </Stack>
       </Base>
 
