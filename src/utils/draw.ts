@@ -349,6 +349,30 @@ export function drawBoard(
     ctx.stroke();
     ctx.setLineDash([]);
 
+    // Pin positions and labels
+    const previewComp = { ...comp, row: targetRow, col: targetCol };
+    const pinPositions = getComponentPinPositions(previewComp, tpl);
+    for (let i = 0; i < pinPositions.length; i++) {
+      const [pr, pc] = pinPositions[i];
+      const px = BOARD_PAD + pc * HOLE_SPACING + HOLE_SPACING / 2;
+      const py = BOARD_PAD + pr * HOLE_SPACING + HOLE_SPACING / 2;
+      ctx.beginPath();
+      ctx.arc(px, py, HOLE_RADIUS + 1, 0, Math.PI * 2);
+      ctx.fillStyle = inBounds ? 'rgba(255,255,255,0.7)' : 'rgba(255,100,100,0.5)';
+      ctx.fill();
+
+      const label = tpl.pins?.[i];
+      if (label) {
+        ctx.save();
+        ctx.font = 'bold 7px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        drawText(label, px, py - HOLE_RADIUS - 2);
+        ctx.restore();
+      }
+    }
+
     ctx.font = 'bold 9px sans-serif';
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
