@@ -41,9 +41,10 @@ export interface BoardState {
   templates: ComponentTemplate[];
   projectName?: string;
   projectMemo?: string;
+  blockedHoles?: string[];
 }
 
-export type ToolType = 'select' | 'component' | 'wire' | 'label' | 'erase';
+export type ToolType = 'select' | 'component' | 'wire' | 'label' | 'erase' | 'block';
 
 export interface TemplateEditorPin {
   r: number;

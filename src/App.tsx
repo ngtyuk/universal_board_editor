@@ -96,6 +96,9 @@ export default function App() {
         case "erase":
           board.eraseAt(r, c);
           break;
+        case "block":
+          board.toggleBlockedHole(r, c);
+          break;
       }
     },
     [board],
@@ -134,15 +137,18 @@ export default function App() {
           board.selectTool("select");
           break;
         case "2":
-          board.selectTool("component");
+          board.selectTool("block");
           break;
         case "3":
-          board.selectTool("wire");
+          board.selectTool("component");
           break;
         case "4":
-          board.selectTool("label");
+          board.selectTool("wire");
           break;
         case "5":
+          board.selectTool("label");
+          break;
+        case "6":
           board.selectTool("erase");
           break;
         case "Escape":
@@ -282,6 +288,7 @@ export default function App() {
               <SegmentedControl
                 options={[
                   { value: "select", content: "選択" },
+                  { value: "block", content: "基板編集" },
                   { value: "component", content: "部品" },
                   { value: "wire", content: "配線" },
                   { value: "label", content: "ラベル" },

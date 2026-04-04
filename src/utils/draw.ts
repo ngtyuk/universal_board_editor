@@ -317,6 +317,36 @@ export function drawBoard(
     }
   }
 
+  // Blocked holes (screw holes)
+  if (drawState.blockedHoles) {
+    for (const key of drawState.blockedHoles) {
+      const [br, bc] = key.split(',').map(Number);
+      if (br < 0 || br >= drawState.rows || bc < 0 || bc >= drawState.cols) continue;
+      const x = BOARD_PAD + bc * HOLE_SPACING + HOLE_SPACING / 2;
+      const y = BOARD_PAD + br * HOLE_SPACING + HOLE_SPACING / 2;
+
+      // Dark filled circle
+      ctx.beginPath();
+      ctx.arc(x, y, HOLE_RADIUS + 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#555';
+      ctx.fill();
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // × mark
+      const s = HOLE_RADIUS;
+      ctx.beginPath();
+      ctx.moveTo(x - s, y - s);
+      ctx.lineTo(x + s, y + s);
+      ctx.moveTo(x + s, y - s);
+      ctx.lineTo(x - s, y + s);
+      ctx.strokeStyle = '#ff4444';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
   // Labels (shared, on top of holes) - need counter-flip for readability
   for (let r = 0; r < drawState.rows; r++) {
     for (let c = 0; c < drawState.cols; c++) {

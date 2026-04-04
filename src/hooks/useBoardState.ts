@@ -145,7 +145,7 @@ export function useBoardState() {
     setCurrentTool(tool);
     setWireStart(null);
     setStatusMessage(`ツール: ${{
-      select: '選択', component: '部品配置', wire: '配線', label: 'ラベル', erase: '消去'
+      select: '選択', block: '基板編集', component: '部品配置', wire: '配線', label: 'ラベル', erase: '消去'
     }[tool]}`);
   }, []);
 
@@ -173,6 +173,10 @@ export function useBoardState() {
         for (let dc = 0; dc < dims.w; dc++) {
           if (getComponentAtHole(r + dr, c + dc, s.components, s.templates, currentSide)) {
             notify('他の部品と重なっています', 'error');
+            return s;
+          }
+          if (s.blockedHoles?.includes(`${r + dr},${c + dc}`)) {
+            notify('ネジ穴と重なっています', 'error');
             return s;
           }
         }
@@ -299,6 +303,10 @@ export function useBoardState() {
             notify('移動先に他の部品があります', 'error');
             return s;
           }
+          if (s.blockedHoles?.includes(`${newRow + dr},${newCol + dc}`)) {
+            notify('移動先にネジ穴があります', 'error');
+            return s;
+          }
         }
       }
 
@@ -320,6 +328,12 @@ export function useBoardState() {
 
   const addWire = useCallback((from: [number, number], to: [number, number]) => {
     commitState(s => {
+      const fromKey = `${from[0]},${from[1]}`;
+      const toKey = `${to[0]},${to[1]}`;
+      if (s.blockedHoles?.includes(fromKey) || s.blockedHoles?.includes(toKey)) {
+        notify('ネジ穴に配線できません', 'error');
+        return s;
+      }
       const wires = [...s.wires];
 
       // 新しい配線の端点が既存配線の途中にあれば、その配線を分割する
@@ -450,9 +464,41 @@ export function useBoardState() {
         setStatusMessage('ラベルを削除しました');
         return { ...s, holes: newHoles };
       }
+
+      if (s.blockedHoles?.includes(key)) {
+        setStatusMessage('ネジ穴を解除しました');
+        return { ...s, blockedHoles: s.blockedHoles.filter(k => k !== key) };
+      }
+
       return s;
     });
   }, [currentSide]);
+
+  const toggleBlockedHole = useCallback((r: number, c: number) => {
+    commitState(s => {
+      const key = `${r},${c}`;
+      const blocked = s.blockedHoles || [];
+      if (blocked.includes(key)) {
+        setStatusMessage(`ネジ穴を解除しました (行${r + 1}, 列${c + 1})`);
+        return { ...s, blockedHoles: blocked.filter(k => k !== key) };
+      }
+      // 部品がある場所はブロック不可
+      if (getComponentAtHole(r, c, s.components, s.templates)) {
+        notify('部品がある場所にはネジ穴を設定できません', 'error');
+        return s;
+      }
+      // 配線の端点がある場所はブロック不可
+      const hasWire = s.wires.some(w =>
+        (w.from[0] === r && w.from[1] === c) || (w.to[0] === r && w.to[1] === c)
+      );
+      if (hasWire) {
+        notify('配線がある場所にはネジ穴を設定できません', 'error');
+        return s;
+      }
+      setStatusMessage(`ネジ穴を設定しました (行${r + 1}, 列${c + 1})`);
+      return { ...s, blockedHoles: [...blocked, key] };
+    });
+  }, [commitState, notify]);
 
   const moveWireEndpoint = useCallback((wireIndex: number, endpoint: 'from' | 'to', newPos: [number, number]) => {
     commitState(s => {
@@ -666,6 +712,7 @@ export function useBoardState() {
     moveWireEndpoint,
     setHoleLabel,
     eraseAt,
+    toggleBlockedHole,
     addTemplate,
     updateTemplate,
     deleteTemplate,
