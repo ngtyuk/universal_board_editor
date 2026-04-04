@@ -282,19 +282,39 @@ export function useBoardState() {
            (w.from[0] === b[0] && w.from[1] === b[1] && w.to[0] === a[0] && w.to[1] === a[1]))
         );
 
-      splitAt(from);
-      splitAt(to);
+      // ルーティング: 直線 / 45度斜め / 斜め+直線の2セグメント
+      const dr = to[0] - from[0];
+      const dc = to[1] - from[1];
+      const adr = Math.abs(dr);
+      const adc = Math.abs(dc);
+      const segments: [from: [number, number], to: [number, number]][] = [];
 
-      const sameRow = from[0] === to[0];
-      const sameCol = from[1] === to[1];
-      const newWires: typeof wires = [];
-      if (!sameRow && !sameCol) {
-        const corner: [number, number] = [from[0], to[1]];
-        splitAt(corner);
-        if (!isDuplicate(from, corner)) newWires.push({ from, to: corner, color: wireColor, side: currentSide });
-        if (!isDuplicate(corner, to)) newWires.push({ from: corner, to, color: wireColor, side: currentSide });
+      if (dr === 0 || dc === 0 || adr === adc) {
+        // 水平 / 垂直 / 完全な45度 → 直線1本
+        segments.push([from, to]);
+      } else if (adr > adc) {
+        // 斜め adc マス + 垂直に残り
+        const signR = dr > 0 ? 1 : -1;
+        const signC = dc > 0 ? 1 : -1;
+        const corner: [number, number] = [from[0] + signR * adc, from[1] + signC * adc];
+        segments.push([from, corner], [corner, to]);
       } else {
-        if (!isDuplicate(from, to)) newWires.push({ from, to, color: wireColor, side: currentSide });
+        // 斜め adr マス + 水平に残り
+        const signR = dr > 0 ? 1 : -1;
+        const signC = dc > 0 ? 1 : -1;
+        const corner: [number, number] = [from[0] + signR * adr, from[1] + signC * adr];
+        segments.push([from, corner], [corner, to]);
+      }
+
+      // 各セグメントの端点・中間点で既存配線を分割
+      for (const seg of segments) {
+        splitAt(seg[0]);
+        splitAt(seg[1]);
+      }
+
+      const newWires: typeof wires = [];
+      for (const [a, b] of segments) {
+        if (!isDuplicate(a, b)) newWires.push({ from: a, to: b, color: wireColor, side: currentSide });
       }
 
       if (newWires.length === 0) {
