@@ -456,8 +456,35 @@ export function drawBoard(
     }
   }
 
+  // Helper: draw highlighted wires belonging to a net
+  const drawHighlightedWires = (netHoles: Set<string>, color: string, alpha: number) => {
+    for (const wire of drawState.wires) {
+      const fk = `${wire.from[0]},${wire.from[1]}`;
+      const tk = `${wire.to[0]},${wire.to[1]}`;
+      if (!netHoles.has(fk) || !netHoles.has(tk)) continue;
+      const x1 = BOARD_PAD + wire.from[1] * HOLE_SPACING + HOLE_SPACING / 2;
+      const y1 = BOARD_PAD + wire.from[0] * HOLE_SPACING + HOLE_SPACING / 2;
+      const x2 = BOARD_PAD + wire.to[1] * HOLE_SPACING + HOLE_SPACING / 2;
+      const y2 = BOARD_PAD + wire.to[0] * HOLE_SPACING + HOLE_SPACING / 2;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
   // Highlighted net (from sidebar click)
   if (opts.highlightedNet && opts.highlightedNet.length > 0) {
+    // Get the full net from any highlighted pin to find all wires
+    const [hr, hc] = opts.highlightedNet[0];
+    const fullNet = getConnectedHoles(hr, hc, drawState.wires);
+    const fullNetSet = new Set(fullNet.map(([r, c]) => `${r},${c}`));
+    drawHighlightedWires(fullNetSet, 'rgba(0,200,255,0.8)', 0.7);
     for (const [cr, cc] of opts.highlightedNet) {
       const x = BOARD_PAD + cc * HOLE_SPACING + HOLE_SPACING / 2;
       const y = BOARD_PAD + cr * HOLE_SPACING + HOLE_SPACING / 2;
@@ -469,11 +496,14 @@ export function drawBoard(
     }
   }
 
-  // Connected holes highlight
+  // Connected holes highlight (pin positions only)
   if (opts.hoveredHole && opts.currentTool === 'select') {
     const connected = getConnectedHoles(opts.hoveredHole[0], opts.hoveredHole[1], drawState.wires);
-    if (connected.length > 1) {
-      for (const [cr, cc] of connected) {
+    const connectedPins = connected.filter(([cr, cc]) => pinHoles.has(`${cr},${cc}`));
+    if (connectedPins.length > 1) {
+      const connectedSet = new Set(connected.map(([r, c]) => `${r},${c}`));
+      drawHighlightedWires(connectedSet, 'rgba(255,215,0,0.5)', 0.6);
+      for (const [cr, cc] of connectedPins) {
         const x = BOARD_PAD + cc * HOLE_SPACING + HOLE_SPACING / 2;
         const y = BOARD_PAD + cr * HOLE_SPACING + HOLE_SPACING / 2;
         ctx.beginPath();

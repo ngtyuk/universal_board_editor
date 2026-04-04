@@ -367,15 +367,16 @@ export default function Sidebar(props: Props) {
                     const namedParts = entries.filter(e => e.named).map(e => e.text);
                     const allParts = entries.map(e => e.text);
                     if (allParts.length === 0) return null;
+                    const pinOnly = net.filter(([r, c]) => pinMap.has(`${r},${c}`));
                     const isActive = props.highlightedNet != null &&
-                      net.length === props.highlightedNet.length &&
-                      net.every(([r, c]) => props.highlightedNet!.some(([hr, hc]) => hr === r && hc === c));
+                      pinOnly.length === props.highlightedNet.length &&
+                      pinOnly.every(([r, c]) => props.highlightedNet!.some(([hr, hc]) => hr === r && hc === c));
                     return (
                       <div
                         key={i}
                         className={`${styles.wireItem} ${isActive ? styles.wireItemSelected : ""}`}
                         style={{ cursor: 'pointer' }}
-                        onClick={() => props.onHighlightNet(isActive ? null : net)}
+                        onClick={() => props.onHighlightNet(isActive ? null : (pinOnly.length > 0 ? pinOnly : null))}
                       >
                         <Text size="S" className={styles.wireDesc}>
                           {namedParts.length >= 2
