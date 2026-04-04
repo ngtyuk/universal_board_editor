@@ -398,22 +398,20 @@ export default function Sidebar(props: Props) {
         <Stack gap={0.5}>
           <Heading type="blockTitle">ファイル</Heading>
           <Cluster gap={0.25}>
-            <Button size="s" onClick={props.onSave}>
+            <Button onClick={props.onSave}>
               保存
             </Button>
             <Button
-              size="s"
               variant="secondary"
               onClick={() => fileInputRef.current?.click()}
             >
               読込
             </Button>
-            <Button size="s" variant="secondary" onClick={props.onExportImage}>
+            <Button variant="secondary" onClick={props.onExportImage}>
               画像出力
             </Button>
           </Cluster>
           <Button
-            size="s"
             variant="danger"
             wide
             onClick={() =>
@@ -446,7 +444,7 @@ export default function Sidebar(props: Props) {
       <ControlledActionDialog
         isOpen={confirmDialog.open}
         heading={confirmDialog.title}
-        actionText="削除する"
+        actionText="初期化する"
         actionTheme="danger"
         onClickAction={() => {
           confirmDialog.action();

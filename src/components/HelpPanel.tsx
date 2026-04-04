@@ -81,7 +81,7 @@ export default function HelpPanel({ currentTool, sidebarOpen }: Props) {
       heading="操作ガイド"
       size="S"
       bottom={48}
-      left={sidebarOpen ? 312 : 60}
+      left={sidebarOpen ? 354 : 72}
       onClickClose={() => setIsOpen(false)}
       onPressEscape={() => setIsOpen(false)}
     >

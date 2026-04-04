@@ -6,9 +6,9 @@ import 'smarthr-ui/smarthr-ui.css'
 import './index.css'
 import App from './App.tsx'
 
-const theme = createTheme()
+const theme = createTheme();
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <IntlProvider locale="ja">
       <ThemeProvider theme={theme}>
@@ -16,4 +16,4 @@ createRoot(document.getElementById('root')!).render(
       </ThemeProvider>
     </IntlProvider>
   </StrictMode>,
-)
+);

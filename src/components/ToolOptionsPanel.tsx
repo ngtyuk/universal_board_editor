@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from "react";
 import {
   Button,
   FormControl,
@@ -9,10 +9,10 @@ import {
   Text,
   Stack,
   Cluster,
-} from 'smarthr-ui';
-import type { BoardState, ToolType, ComponentTemplate } from '../types';
-import { WIRE_COLORS } from '../utils/constants';
-import styles from './ToolOptionsPanel.module.css';
+} from "smarthr-ui";
+import type { BoardState, ToolType, ComponentTemplate } from "../types";
+import { WIRE_COLORS } from "../utils/constants";
+import styles from "./ToolOptionsPanel.module.css";
 
 interface Props {
   state: BoardState;
@@ -54,7 +54,7 @@ export default function ToolOptionsPanel(props: Props) {
         if (ev.target?.result) onImportTemplates(ev.target.result as string);
       };
       reader.readAsText(file);
-      e.target.value = '';
+      e.target.value = "";
     },
     [onImportTemplates],
   );
@@ -62,53 +62,59 @@ export default function ToolOptionsPanel(props: Props) {
   const selectedTpl = state.templates.find((t) => t.id === selectedTemplateId);
 
   const templateOptions = [
-    { value: '', label: '-- 選択 --' },
+    { value: "", label: "-- 選択 --" },
     ...state.templates.map((t) => ({
       value: t.id,
       label: `${t.name} (${t.w}×${t.h})`,
     })),
   ];
 
-  if (currentTool === 'block') {
+  if (currentTool === "block") {
     return (
       <div className={styles.container}>
         <Base padding={0.75} className={styles.panel}>
-          <Stack gap={0.5}>
-            <Fieldset legend="基板サイズ" className={styles.fieldset}>
-              <FormControl label="横 (列数)">
-                <Input
-                  type="number"
-                  value={cols}
-                  min={5}
-                  max={100}
-                  width="100%"
-                  onChange={(e) => setCols(Number(e.target.value))}
-                />
-              </FormControl>
-              <FormControl label="縦 (行数)">
-                <Input
-                  type="number"
-                  value={rows}
-                  min={5}
-                  max={100}
-                  width="100%"
-                  onChange={(e) => setRows(Number(e.target.value))}
-                />
-              </FormControl>
-            </Fieldset>
-            <Button size="s" onClick={() => props.onResizeBoard(cols, rows)} wide>
-              サイズ変更
-            </Button>
-            <Text size="S" color="TEXT_GREY">
-              ホールをクリックして無効ホールを設定 / 解除
-            </Text>
-          </Stack>
+          <Fieldset legend="基板設定" className={styles.fieldset}>
+            <Stack gap={0.5}>
+              <Cluster>
+                <FormControl label="横のホール数(列)" className="shr-flex-1">
+                  <Input
+                    type="number"
+                    value={cols}
+                    min={5}
+                    max={100}
+                    width="100%"
+                    onChange={(e) => setCols(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormControl label="縦のホール数(行)" className="shr-flex-1">
+                  <Input
+                    type="number"
+                    value={rows}
+                    min={5}
+                    max={100}
+                    width="100%"
+                    onChange={(e) => setRows(Number(e.target.value))}
+                  />
+                </FormControl>
+              </Cluster>
+              <Button
+                size="s"
+                onClick={() => props.onResizeBoard(cols, rows)}
+                wide
+              >
+                サイズ変更
+              </Button>
+              <Text size="S" color="TEXT_GREY">
+                ホールをクリックして無効ホールを設定 / 解除
+              </Text>
+            </Stack>
+          </Fieldset>
         </Base>
       </div>
     );
   }
 
-  if (currentTool === 'component') {
+  if (currentTool === "component") {
     return (
       <div className={styles.container}>
         <Base padding={0.75} className={styles.panel}>
@@ -137,11 +143,8 @@ export default function ToolOptionsPanel(props: Props) {
             )}
 
             <Cluster gap={0.25}>
-              <Button size="s" onClick={() => props.onOpenTemplateEditor()}>
-                作成
-              </Button>
+              <Button onClick={() => props.onOpenTemplateEditor()}>作成</Button>
               <Button
-                size="s"
                 variant="secondary"
                 onClick={() => {
                   if (selectedTpl) props.onOpenTemplateEditor(selectedTpl);
@@ -151,7 +154,6 @@ export default function ToolOptionsPanel(props: Props) {
                 編集
               </Button>
               <Button
-                size="s"
                 variant="danger"
                 onClick={() => {
                   if (selectedTpl) props.onDeleteTemplate(selectedTpl.id);
@@ -162,15 +164,10 @@ export default function ToolOptionsPanel(props: Props) {
               </Button>
             </Cluster>
             <Cluster gap={0.25}>
-              <Button
-                size="s"
-                variant="secondary"
-                onClick={props.onExportTemplates}
-              >
+              <Button variant="secondary" onClick={props.onExportTemplates}>
                 エクスポート
               </Button>
               <Button
-                size="s"
                 variant="secondary"
                 onClick={() => templateFileInputRef.current?.click()}
               >
@@ -183,14 +180,14 @@ export default function ToolOptionsPanel(props: Props) {
           ref={templateFileInputRef}
           type="file"
           accept=".json"
-          style={{ display: 'none' }}
+          style={{ display: "none" }}
           onChange={handleImportTemplates}
         />
       </div>
     );
   }
 
-  if (currentTool === 'wire') {
+  if (currentTool === "wire") {
     return (
       <div className={styles.container}>
         <Base padding={0.75} className={styles.panel}>
@@ -199,7 +196,7 @@ export default function ToolOptionsPanel(props: Props) {
               {WIRE_COLORS.map((c) => (
                 <div
                   key={c}
-                  className={`${styles.wireColorBtn} ${c === wireColor ? styles.wireColorActive : ''}`}
+                  className={`${styles.wireColorBtn} ${c === wireColor ? styles.wireColorActive : ""}`}
                   style={{ background: c }}
                   onClick={() => props.onSetWireColor(c)}
                 />

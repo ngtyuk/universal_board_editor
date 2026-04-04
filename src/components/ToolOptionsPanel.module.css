@@ -8,7 +8,7 @@
 .panel {
   background: rgba(255, 255, 255, 0.95) !important;
   border: 1px solid #d6d3d0 !important;
-  border-radius: 8px !important;
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
   min-width: 220px;
@@ -29,10 +29,4 @@
 .wireColorActive {
   border-color: #0077c7 !important;
   box-shadow: 0 0 0 2px rgba(0, 119, 199, 0.3);
-}
-
-.fieldset {
-  border: none;
-  padding: 0;
-  margin: 0;
 }
