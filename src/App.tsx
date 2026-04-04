@@ -112,6 +112,21 @@ export default function App() {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
 
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          board.redo();
+        } else {
+          board.undo();
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        e.preventDefault();
+        board.redo();
+        return;
+      }
+
       switch (e.key) {
         case "1":
           board.selectTool("select");
@@ -195,6 +210,8 @@ export default function App() {
           <Sidebar
            state={board.state}
           currentTool={board.currentTool}
+          projectName={board.state.projectName || ''}
+          projectMemo={board.state.projectMemo || ''}
             selectedComponentId={board.selectedComponentId}
           wireColor={board.wireColor}
           selectedTemplateId={board.selectedTemplateId}
@@ -210,6 +227,7 @@ export default function App() {
           onSelectComponent={board.setSelectedComponentId}
           onRotateComponent={board.rotateComponent}
           onRemoveComponent={board.removeComponent}
+          onRenameComponent={board.renameComponent}
           onOpenTemplateEditor={(tpl) =>
             setTemplateEditor({ visible: true, tpl: tpl || null })
           }
@@ -220,6 +238,10 @@ export default function App() {
           onExportImage={() =>
             canvasRef.current && board.exportImage(canvasRef.current)
           }
+          onExportTemplates={board.exportTemplates}
+          onImportTemplates={board.importTemplates}
+          onSetProjectName={board.setProjectName}
+          onSetProjectMemo={board.setProjectMemo}
         />
         <div className="main">
           <div className="board-header">
@@ -295,6 +317,7 @@ export default function App() {
               wireStart={board.wireStart}
               wireColor={board.wireColor}
               currentSide={board.currentSide}
+              showNets={board.showNets}
               hoveredHole={hoveredHole}
               zoom={zoom}
               onHoverHole={setHoveredHole}
@@ -302,6 +325,7 @@ export default function App() {
               onRightClick={handleRightClick}
               onZoom={handleZoom}
               onMoveComponent={board.moveComponent}
+              onMoveWireEndpoint={board.moveWireEndpoint}
               canvasRef={canvasRef}
             />
           </div>

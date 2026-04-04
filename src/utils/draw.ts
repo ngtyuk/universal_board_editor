@@ -5,6 +5,7 @@ import {
   getComponentPinPositions,
   getComponentAtHole,
   getConnectedHoles,
+  getAllNets,
 } from './board';
 import { roundRect } from './canvas';
 
@@ -145,6 +146,12 @@ export interface DragPreview {
   targetCol: number;
 }
 
+export interface WireDragPreview {
+  wireIndex: number;
+  endpoint: 'from' | 'to';
+  targetHole: [number, number];
+}
+
 export interface DrawOptions {
   hoveredHole: [number, number] | null;
   wireStart: [number, number] | null;
@@ -152,6 +159,8 @@ export interface DrawOptions {
   selectedComponentId: string | null;
   currentTool: string;
   dragPreview?: DragPreview | null;
+  wireDragPreview?: WireDragPreview | null;
+  showNets?: boolean;
   side: BoardSide;
 }
 
@@ -384,6 +393,34 @@ export function drawBoard(
     ctx.restore();
   }
 
+  // Wire drag preview
+  if (opts.wireDragPreview) {
+    const { wireIndex, endpoint, targetHole } = opts.wireDragPreview;
+    const wire = state.wires[wireIndex];
+    if (wire) {
+      const fixedEnd = endpoint === 'from' ? wire.to : wire.from;
+      const fx = BOARD_PAD + fixedEnd[1] * HOLE_SPACING + HOLE_SPACING / 2;
+      const fy = BOARD_PAD + fixedEnd[0] * HOLE_SPACING + HOLE_SPACING / 2;
+      const tx = BOARD_PAD + targetHole[1] * HOLE_SPACING + HOLE_SPACING / 2;
+      const ty = BOARD_PAD + targetHole[0] * HOLE_SPACING + HOLE_SPACING / 2;
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(tx, ty);
+      ctx.strokeStyle = wire.color || '#ff6b6b';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(tx, ty, HOLE_RADIUS + 2, 0, Math.PI * 2);
+      ctx.fillStyle = wire.color || '#ff6b6b';
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // Connected holes highlight
   if (opts.hoveredHole && opts.currentTool === 'select') {
     const connected = getConnectedHoles(opts.hoveredHole[0], opts.hoveredHole[1], state.wires);
@@ -400,8 +437,56 @@ export function drawBoard(
     }
   }
 
+  // Net visualization
+  if (opts.showNets) {
+    const NET_COLORS = [
+      '#ff6b6b', '#4ecdc4', '#ffe66d', '#a29bfe', '#fd79a8',
+      '#00cec9', '#fab1a0', '#6c5ce7', '#55efc4', '#fdcb6e',
+      '#e17055', '#0984e3', '#b2bec3', '#d63031', '#00b894',
+    ];
+    const nets = getAllNets(state.wires);
+    for (let ni = 0; ni < nets.length; ni++) {
+      const color = NET_COLORS[ni % NET_COLORS.length];
+      for (const [nr, nc] of nets[ni]) {
+        const x = BOARD_PAD + nc * HOLE_SPACING + HOLE_SPACING / 2;
+        const y = BOARD_PAD + nr * HOLE_SPACING + HOLE_SPACING / 2;
+        ctx.beginPath();
+        ctx.arc(x, y, HOLE_RADIUS + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+  }
+
   // Restore mirror transform
   if (isBack) {
     ctx.restore();
   }
+
+  // Ruler (drawn outside mirror so always readable)
+  ctx.save();
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+
+  for (let c = 0; c < state.cols; c++) {
+    const x = BOARD_PAD + c * HOLE_SPACING + HOLE_SPACING / 2;
+    const isHovered = opts.hoveredHole?.[1] === c;
+    if (isHovered) ctx.fillStyle = '#ffd93d';
+    ctx.fillText(`${c + 1}`, x, BOARD_PAD / 2);
+    if (isHovered) ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  }
+
+  ctx.textAlign = 'right';
+  for (let r = 0; r < state.rows; r++) {
+    const y = BOARD_PAD + r * HOLE_SPACING + HOLE_SPACING / 2;
+    const isHovered = opts.hoveredHole?.[0] === r;
+    if (isHovered) ctx.fillStyle = '#ffd93d';
+    ctx.fillText(`${r + 1}`, BOARD_PAD - 4, y);
+    if (isHovered) ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  }
+
+  ctx.restore();
 }

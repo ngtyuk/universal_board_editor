@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { BoardState, PlacedComponent, ComponentTemplate, ToolType, BoardSide } from '../types';
 import { DEFAULT_TEMPLATES } from '../utils/constants';
 import {
@@ -52,8 +52,58 @@ function loadSavedState(): BoardState {
   }
 }
 
+const HISTORY_MAX = 50;
+
 export function useBoardState() {
   const [state, setState] = useState<BoardState>(loadSavedState);
+  const historyRef = useRef<BoardState[]>([]);
+  const historyIndexRef = useRef(-1);
+  const isUndoRedoRef = useRef(false);
+
+  // 初回マウント時に現在の state を履歴に入れる
+  useEffect(() => {
+    if (historyRef.current.length === 0) {
+      historyRef.current = [state];
+      historyIndexRef.current = 0;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // setState をラップして履歴を記録する
+  const commitState: typeof setState = useCallback((action) => {
+    setState(prev => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      if (next === prev) return prev; // バリデーション失敗で変更なし
+      if (!isUndoRedoRef.current) {
+        const history = historyRef.current;
+        const idx = historyIndexRef.current;
+        // 途中から分岐した場合、index 以降を切り捨て
+        historyRef.current = [...history.slice(0, idx + 1), next].slice(-HISTORY_MAX);
+        historyIndexRef.current = historyRef.current.length - 1;
+      }
+      return next;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    const idx = historyIndexRef.current;
+    if (idx <= 0) return;
+    isUndoRedoRef.current = true;
+    historyIndexRef.current = idx - 1;
+    setState(historyRef.current[idx - 1]);
+    isUndoRedoRef.current = false;
+    setStatusMessage(`元に戻しました (${idx - 1}/${historyRef.current.length - 1})`);
+  }, []);
+
+  const redo = useCallback(() => {
+    const idx = historyIndexRef.current;
+    if (idx >= historyRef.current.length - 1) return;
+    isUndoRedoRef.current = true;
+    historyIndexRef.current = idx + 1;
+    setState(historyRef.current[idx + 1]);
+    isUndoRedoRef.current = false;
+    setStatusMessage(`やり直しました (${idx + 1}/${historyRef.current.length - 1})`);
+  }, []);
 
   // localStorage への自動保存 (基板データ: テンプレートを除外)
   useEffect(() => {
@@ -83,6 +133,7 @@ export function useBoardState() {
   const [placementRotation, setPlacementRotation] = useState(0);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [currentSide, setCurrentSide] = useState<BoardSide>('front');
+  const [showNets, setShowNets] = useState(false);
   const [statusMessage, setStatusMessage] = useState('準備完了');
   const [notification, setNotification] = useState<{
     message: string; type: 'info' | 'success' | 'warning' | 'error';
@@ -102,12 +153,12 @@ export function useBoardState() {
   }, []);
 
   const resizeBoard = useCallback((cols: number, rows: number) => {
-    setState(s => ({ ...s, cols, rows }));
+    commitState(s => ({ ...s, cols, rows }));
     setStatusMessage(`基板サイズ: ${cols} × ${rows}`);
   }, []);
 
   const placeComponent = useCallback((r: number, c: number) => {
-    setState(s => {
+    commitState(s => {
       if (!selectedTemplateId) {
         notify('テンプレートを選択してください', 'warning');
         return s;
@@ -144,7 +195,7 @@ export function useBoardState() {
   }, [selectedTemplateId, placementRotation, currentSide, notify]);
 
   const removeComponent = useCallback((id: string) => {
-    setState(s => {
+    commitState(s => {
       const comp = s.components.find(c => c.id === id);
       const newHoles = { ...s.holes };
       if (comp) {
@@ -167,7 +218,7 @@ export function useBoardState() {
   }, []);
 
   const rotateComponent = useCallback((id: string) => {
-    setState(s => {
+    commitState(s => {
       const comp = s.components.find(c => c.id === id);
       if (!comp) return s;
       const tpl = s.templates.find(t => t.id === comp.templateId);
@@ -215,8 +266,15 @@ export function useBoardState() {
     });
   }, [notify]);
 
+  const renameComponent = useCallback((id: string, name: string) => {
+    commitState(s => ({
+      ...s,
+      components: s.components.map(c => c.id === id ? { ...c, name } : c),
+    }));
+  }, [commitState]);
+
   const moveComponent = useCallback((id: string, newRow: number, newCol: number) => {
-    setState(s => {
+    commitState(s => {
       const comp = s.components.find(c => c.id === id);
       if (!comp) return s;
       if (comp.row === newRow && comp.col === newCol) return s;
@@ -256,7 +314,7 @@ export function useBoardState() {
   }, [notify]);
 
   const addWire = useCallback((from: [number, number], to: [number, number]) => {
-    setState(s => {
+    commitState(s => {
       const wires = [...s.wires];
 
       // 新しい配線の端点が既存配線の途中にあれば、その配線を分割する
@@ -328,7 +386,7 @@ export function useBoardState() {
   }, [wireColor, currentSide, notify]);
 
   const setHoleLabel = useCallback((r: number, c: number, label: string) => {
-    setState(s => {
+    commitState(s => {
       const key = `${r},${c}`;
       const newHoles = { ...s.holes };
       newHoles[key] = { label, _manual: true };
@@ -337,7 +395,7 @@ export function useBoardState() {
   }, []);
 
   const eraseAt = useCallback((r: number, c: number) => {
-    setState(s => {
+    commitState(s => {
       const comp = getComponentAtHole(r, c, s.components, s.templates, currentSide);
       if (comp) {
         const tpl = s.templates.find(t => t.id === comp.templateId);
@@ -391,13 +449,43 @@ export function useBoardState() {
     });
   }, [currentSide]);
 
+  const moveWireEndpoint = useCallback((wireIndex: number, endpoint: 'from' | 'to', newPos: [number, number]) => {
+    commitState(s => {
+      if (wireIndex < 0 || wireIndex >= s.wires.length) return s;
+      const wire = s.wires[wireIndex];
+      const newWire = { ...wire, [endpoint]: newPos };
+
+      // from と to が同じならスキップ
+      if (newWire.from[0] === newWire.to[0] && newWire.from[1] === newWire.to[1]) return s;
+
+      // 重複チェック
+      const isDup = s.wires.some((w, i) => {
+        if (i === wireIndex) return false;
+        if ((w.side || 'front') !== (wire.side || 'front')) return false;
+        return (
+          (w.from[0] === newWire.from[0] && w.from[1] === newWire.from[1] &&
+           w.to[0] === newWire.to[0] && w.to[1] === newWire.to[1]) ||
+          (w.from[0] === newWire.to[0] && w.from[1] === newWire.to[1] &&
+           w.to[0] === newWire.from[0] && w.to[1] === newWire.from[1])
+        );
+      });
+      if (isDup) {
+        notify('同じ配線が既に存在します', 'error');
+        return s;
+      }
+
+      setStatusMessage('配線を移動しました');
+      return { ...s, wires: s.wires.map((w, i) => i === wireIndex ? newWire : w) };
+    });
+  }, [notify]);
+
   const addTemplate = useCallback((tpl: ComponentTemplate) => {
-    setState(s => ({ ...s, templates: [...s.templates, tpl] }));
+    commitState(s => ({ ...s, templates: [...s.templates, tpl] }));
     notify(`テンプレート「${tpl.name}」を追加しました`, 'success');
   }, [notify]);
 
   const updateTemplate = useCallback((tpl: ComponentTemplate) => {
-    setState(s => ({
+    commitState(s => ({
       ...s,
       templates: s.templates.map(t => t.id === tpl.id ? tpl : t),
     }));
@@ -405,7 +493,7 @@ export function useBoardState() {
   }, [notify]);
 
   const deleteTemplate = useCallback((id: string) => {
-    setState(s => {
+    commitState(s => {
       if (DEFAULT_TEMPLATES.find(t => t.id === id)) {
         notify('デフォルトテンプレートは削除できません', 'error');
         return s;
@@ -421,14 +509,24 @@ export function useBoardState() {
   }, [notify]);
 
   const resetBoard = useCallback(() => {
-    setState(s => ({
-      ...initialState,
-      templates: s.templates,
-    }));
+    setState(s => {
+      const next = { ...initialState, templates: s.templates };
+      historyRef.current = [next];
+      historyIndexRef.current = 0;
+      return next;
+    });
     setSelectedComponentId(null);
     setWireStart(null);
     notify('基板を初期化しました', 'success');
   }, [notify]);
+
+  const setProjectName = useCallback((name: string) => {
+    commitState(s => ({ ...s, projectName: name }));
+  }, [commitState]);
+
+  const setProjectMemo = useCallback((memo: string) => {
+    commitState(s => ({ ...s, projectMemo: memo }));
+  }, [commitState]);
 
   const saveProject = useCallback(() => {
     const { templates: _, ...boardData } = state;
@@ -436,7 +534,8 @@ export function useBoardState() {
     const blob = new Blob([data], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'universal-board-project.json';
+    const filename = state.projectName?.trim() || 'universal-board-project';
+    a.download = `${filename}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
     setStatusMessage('プロジェクトを保存しました');
@@ -458,10 +557,10 @@ export function useBoardState() {
         return;
       }
 
-      setState({
-        ...data,
-        templates: currentTemplates,
-      });
+      const next = { ...data, templates: currentTemplates };
+      historyRef.current = [next];
+      historyIndexRef.current = 0;
+      setState(next);
       setSelectedComponentId(null);
       notify('プロジェクトを読み込みました', 'success');
     } catch {
@@ -477,8 +576,70 @@ export function useBoardState() {
     setStatusMessage('画像を出力しました');
   }, []);
 
+  const exportTemplates = useCallback(() => {
+    const customTemplates = state.templates.filter(
+      t => !DEFAULT_TEMPLATES.find(d => d.id === t.id)
+    );
+    if (customTemplates.length === 0) {
+      notify('エクスポートするカスタムテンプレートがありません', 'warning');
+      return;
+    }
+    const data = JSON.stringify(customTemplates, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'universal-board-templates.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    notify(`${customTemplates.length}件のテンプレートをエクスポートしました`, 'success');
+  }, [state.templates, notify]);
+
+  const importTemplates = useCallback((json: string) => {
+    try {
+      const imported = JSON.parse(json) as ComponentTemplate[];
+      if (!Array.isArray(imported) || imported.length === 0) {
+        notify('有効なテンプレートが見つかりません', 'error');
+        return;
+      }
+      // デフォルトテンプレートと同じIDは無視
+      const filtered = imported.filter(
+        t => t.id && t.name && !DEFAULT_TEMPLATES.find(d => d.id === t.id)
+      );
+      if (filtered.length === 0) {
+        notify('インポートするテンプレートがありません', 'warning');
+        return;
+      }
+      commitState(s => {
+        const newTemplates = [...s.templates];
+        let added = 0;
+        let updated = 0;
+        for (const tpl of filtered) {
+          const existingIdx = newTemplates.findIndex(t => t.id === tpl.id);
+          if (existingIdx >= 0) {
+            newTemplates[existingIdx] = tpl;
+            updated++;
+          } else {
+            newTemplates.push(tpl);
+            added++;
+          }
+        }
+        const parts: string[] = [];
+        if (added > 0) parts.push(`${added}件追加`);
+        if (updated > 0) parts.push(`${updated}件更新`);
+        notify(`テンプレートをインポートしました (${parts.join(', ')})`, 'success');
+        return { ...s, templates: newTemplates };
+      });
+    } catch {
+      notify('テンプレートの読み込みエラー', 'error');
+    }
+  }, [notify, commitState]);
+
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
+
   return {
     state,
+    undo, redo, canUndo, canRedo,
     selectedComponentId, setSelectedComponentId,
     currentTool, selectTool,
     wireStart, setWireStart,
@@ -486,14 +647,17 @@ export function useBoardState() {
     placementRotation, setPlacementRotation,
     selectedTemplateId, setSelectedTemplateId,
     currentSide, setCurrentSide,
+    showNets, setShowNets,
     statusMessage, setStatusMessage,
     notification, setNotification,
     resizeBoard,
     placeComponent,
     removeComponent,
+    renameComponent,
     rotateComponent,
     moveComponent,
     addWire,
+    moveWireEndpoint,
     setHoleLabel,
     eraseAt,
     addTemplate,
@@ -503,5 +667,9 @@ export function useBoardState() {
     saveProject,
     loadProject,
     exportImage,
+    exportTemplates,
+    importTemplates,
+    setProjectName,
+    setProjectMemo,
   };
 }

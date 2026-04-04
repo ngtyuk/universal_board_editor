@@ -15,6 +15,7 @@ interface Props {
   wireStart: [number, number] | null;
   wireColor: string;
   currentSide: BoardSide;
+  showNets: boolean;
   hoveredHole: [number, number] | null;
   zoom: number;
   onHoverHole: (hole: [number, number] | null) => void;
@@ -22,6 +23,7 @@ interface Props {
   onRightClick: () => void;
   onZoom: (delta: number) => void;
   onMoveComponent: (id: string, row: number, col: number) => void;
+  onMoveWireEndpoint: (wireIndex: number, endpoint: 'from' | 'to', newPos: [number, number]) => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
@@ -30,15 +32,25 @@ const DRAG_THRESHOLD = 4; // px before drag starts
 export default function BoardCanvas({
   state, currentTool, selectedComponentId,
   selectedTemplateId, placementRotation,
-  wireStart, wireColor, currentSide, hoveredHole, zoom,
-  onHoverHole, onClickHole, onRightClick, onZoom, onMoveComponent, canvasRef,
+  wireStart, wireColor, currentSide, showNets, hoveredHole, zoom,
+  onHoverHole, onClickHole, onRightClick, onZoom, onMoveComponent, onMoveWireEndpoint, canvasRef,
 }: Props) {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+  const [wireDragPreview, setWireDragPreview] = useState<{
+    wireIndex: number; endpoint: 'from' | 'to'; targetHole: [number, number];
+  } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{
     compId: string;
     offsetR: number;
     offsetC: number;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+  } | null>(null);
+  const wireDragRef = useRef<{
+    wireIndex: number;
+    endpoint: 'from' | 'to';
     startX: number;
     startY: number;
     dragging: boolean;
@@ -71,9 +83,11 @@ export default function BoardCanvas({
       selectedComponentId,
       currentTool,
       dragPreview: activePreview,
+      wireDragPreview,
+      showNets,
       side: currentSide,
     });
-  }, [state, hoveredHole, wireStart, wireColor, selectedComponentId, currentTool, canvasRef, activePreview, currentSide]);
+  }, [state, hoveredHole, wireStart, wireColor, selectedComponentId, currentTool, canvasRef, activePreview, wireDragPreview, showNets, currentSide]);
 
   const logicalCoordsFromMouse = useCallback((e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
     if (!canvasRef.current) return null;
@@ -124,58 +138,112 @@ export default function BoardCanvas({
     if (!hole) return;
 
     const comp = getComponentAtHole(hole[0], hole[1], state.components, state.templates, currentSide);
-    if (!comp) return;
-
-    const tpl = state.templates.find(t => t.id === comp.templateId);
-    if (!tpl) return;
-
-    dragRef.current = {
-      compId: comp.id,
-      offsetR: hole[0] - comp.row,
-      offsetC: hole[1] - comp.col,
-      startX: e.clientX,
-      startY: e.clientY,
-      dragging: false,
-    };
-  }, [currentTool, state.components, state.templates, adjustedHoleFromMouse, currentSide]);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-
-      if (!drag.dragging) {
-        const dx = e.clientX - drag.startX;
-        const dy = e.clientY - drag.startY;
-        if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
-        drag.dragging = true;
-        setIsDragging(true);
-      }
-
-      const cell = gridCellFromMouse(e);
-      if (!cell) return;
-
-      const comp = state.components.find(c => c.id === drag.compId);
-      if (!comp) return;
+    if (comp) {
       const tpl = state.templates.find(t => t.id === comp.templateId);
       if (!tpl) return;
 
-      const targetRow = cell[0] - drag.offsetR;
-      const targetCol = cell[1] - drag.offsetC;
+      dragRef.current = {
+        compId: comp.id,
+        offsetR: hole[0] - comp.row,
+        offsetC: hole[1] - comp.col,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+      };
+      return;
+    }
 
-      setDragPreview({ comp, tpl, targetRow, targetCol });
+    // 配線の端点チェック
+    const [hr, hc] = hole;
+    const wireIdx = state.wires.findIndex(w =>
+      (w.side || 'front') === currentSide &&
+      ((w.from[0] === hr && w.from[1] === hc) || (w.to[0] === hr && w.to[1] === hc))
+    );
+    if (wireIdx >= 0) {
+      const w = state.wires[wireIdx];
+      const endpoint = (w.from[0] === hr && w.from[1] === hc) ? 'from' : 'to';
+      wireDragRef.current = {
+        wireIndex: wireIdx,
+        endpoint,
+        startX: e.clientX,
+        startY: e.clientY,
+        dragging: false,
+      };
+    }
+  }, [currentTool, state.components, state.templates, state.wires, adjustedHoleFromMouse, currentSide]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // 部品ドラッグ
+      const drag = dragRef.current;
+      if (drag) {
+        if (!drag.dragging) {
+          const dx = e.clientX - drag.startX;
+          const dy = e.clientY - drag.startY;
+          if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+          drag.dragging = true;
+          setIsDragging(true);
+        }
+
+        const cell = gridCellFromMouse(e);
+        if (!cell) return;
+
+        const comp = state.components.find(c => c.id === drag.compId);
+        if (!comp) return;
+        const tpl = state.templates.find(t => t.id === comp.templateId);
+        if (!tpl) return;
+
+        const targetRow = cell[0] - drag.offsetR;
+        const targetCol = cell[1] - drag.offsetC;
+
+        setDragPreview({ comp, tpl, targetRow, targetCol });
+        return;
+      }
+
+      // 配線ドラッグ
+      const wireDrag = wireDragRef.current;
+      if (wireDrag) {
+        if (!wireDrag.dragging) {
+          const dx = e.clientX - wireDrag.startX;
+          const dy = e.clientY - wireDrag.startY;
+          if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+          wireDrag.dragging = true;
+          setIsDragging(true);
+        }
+
+        const cell = gridCellFromMouse(e);
+        if (!cell) return;
+        setWireDragPreview({
+          wireIndex: wireDrag.wireIndex,
+          endpoint: wireDrag.endpoint,
+          targetHole: cell,
+        });
+      }
     };
 
     const handleMouseUp = () => {
+      // 部品ドラッグ完了
       const drag = dragRef.current;
-      if (!drag) return;
-      dragRef.current = null;
-
-      if (drag.dragging && dragPreview) {
-        onMoveComponent(drag.compId, dragPreview.targetRow, dragPreview.targetCol);
+      if (drag) {
+        dragRef.current = null;
+        if (drag.dragging && dragPreview) {
+          onMoveComponent(drag.compId, dragPreview.targetRow, dragPreview.targetCol);
+        }
+        setDragPreview(null);
+        setIsDragging(false);
+        return;
       }
-      setDragPreview(null);
-      setIsDragging(false);
+
+      // 配線ドラッグ完了
+      const wireDrag = wireDragRef.current;
+      if (wireDrag) {
+        wireDragRef.current = null;
+        if (wireDrag.dragging && wireDragPreview) {
+          onMoveWireEndpoint(wireDrag.wireIndex, wireDrag.endpoint, wireDragPreview.targetHole);
+        }
+        setWireDragPreview(null);
+        setIsDragging(false);
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -184,7 +252,7 @@ export default function BoardCanvas({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [state.components, state.templates, gridCellFromMouse, onMoveComponent, dragPreview]);
+  }, [state.components, state.templates, gridCellFromMouse, onMoveComponent, onMoveWireEndpoint, dragPreview, wireDragPreview]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) return;

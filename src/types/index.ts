@@ -39,6 +39,8 @@ export interface BoardState {
   components: PlacedComponent[];
   wires: Wire[];
   templates: ComponentTemplate[];
+  projectName?: string;
+  projectMemo?: string;
 }
 
 export type ToolType = 'select' | 'component' | 'wire' | 'label' | 'erase';

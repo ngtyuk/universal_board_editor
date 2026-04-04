@@ -160,3 +160,26 @@ export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+/** 全ネット（接続グループ）を列挙する。2ホール以上繋がったグループのみ返す。 */
+export function getAllNets(wires: Wire[]): [number, number][][] {
+  const visited = new Set<string>();
+  const nets: [number, number][][] = [];
+
+  // 全ワイヤの端点を候補として列挙
+  const endpoints = new Set<string>();
+  for (const w of wires) {
+    endpoints.add(`${w.from[0]},${w.from[1]}`);
+    endpoints.add(`${w.to[0]},${w.to[1]}`);
+  }
+
+  for (const key of endpoints) {
+    if (visited.has(key)) continue;
+    const [r, c] = key.split(',').map(Number);
+    const group = getConnectedHoles(r, c, wires);
+    for (const [gr, gc] of group) visited.add(`${gr},${gc}`);
+    if (group.length >= 2) nets.push(group);
+  }
+
+  return nets;
+}
+

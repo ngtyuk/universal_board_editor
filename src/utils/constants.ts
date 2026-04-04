@@ -2,7 +2,7 @@ import type { ComponentTemplate } from '../types';
 
 export const HOLE_SPACING = 24;
 export const HOLE_RADIUS = 3.5;
-export const BOARD_PAD = 20;
+export const BOARD_PAD = 32;
 
 export const WIRE_COLORS = [
   '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff',
