@@ -73,8 +73,12 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     const ctx = canvas.getContext('2d')!;
     const cw = TE_PAD * 2 + w * TE_SPACING;
     const ch = TE_PAD * 2 + h * TE_SPACING;
-    canvas.width = cw;
-    canvas.height = ch;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = cw * dpr;
+    canvas.height = ch * dpr;
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    ctx.scale(dpr, dpr);
 
     const isBack = currentSide === 'back';
 
@@ -182,12 +186,13 @@ export default function TemplateEditor({ visible, editingTemplate, onSave, onClo
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    const scaleX = canvas.width / dpr / rect.width;
+    const scaleY = canvas.height / dpr / rect.height;
     let mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
     if (currentSide === 'back') {
-      mx = canvas.width - mx;
+      mx = canvas.width / dpr - mx;
     }
     const cc = Math.floor((mx - TE_PAD) / TE_SPACING);
     const rr = Math.floor((my - TE_PAD) / TE_SPACING);

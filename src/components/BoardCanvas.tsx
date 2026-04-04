@@ -79,13 +79,14 @@ export default function BoardCanvas({
     if (!canvasRef.current) return null;
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
-    const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+    const dpr = window.devicePixelRatio || 1;
+    const scaleX = rect.width > 0 ? canvas.width / dpr / rect.width : 1;
+    const scaleY = rect.height > 0 ? canvas.height / dpr / rect.height : 1;
     let mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
     // Mirror X for back side (matches the canvas transform)
     if (currentSide === 'back') {
-      mx = canvas.width - mx;
+      mx = canvas.width / dpr - mx;
     }
     return { mx, my };
   }, [canvasRef, currentSide]);

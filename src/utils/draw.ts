@@ -34,7 +34,6 @@ function drawWire(ctx: CanvasRenderingContext2D, wire: Wire) {
 
   ctx.beginPath();
   ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y1);
   ctx.lineTo(x2, y2);
   ctx.strokeStyle = wire.color || '#ff6b6b';
   ctx.lineWidth = 2.5;
@@ -164,8 +163,12 @@ export function drawBoard(
   if (!ctx) return;
   const w = BOARD_PAD * 2 + state.cols * HOLE_SPACING;
   const h = BOARD_PAD * 2 + state.rows * HOLE_SPACING;
-  canvas.width = w;
-  canvas.height = h;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
+  ctx.scale(dpr, dpr);
 
   const isBack = opts.side === 'back';
 
