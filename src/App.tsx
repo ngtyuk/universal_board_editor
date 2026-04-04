@@ -100,6 +100,9 @@ export default function App() {
   );
 
   const handleRightClick = useCallback(() => {
+    if (board.currentTool === 'component') {
+      board.setPlacementRotation((board.placementRotation + 90) % 360);
+    }
     board.setWireStart(null);
   }, [board]);
 
