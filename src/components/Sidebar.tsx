@@ -57,6 +57,8 @@ interface Props {
   projectMemo: string;
   onSetProjectName: (name: string) => void;
   onSetProjectMemo: (memo: string) => void;
+  onExportTemplates: () => void;
+  onImportTemplates: (json: string) => void;
   highlightedNet: [number, number][] | null;
   onHighlightNet: (net: [number, number][] | null) => void;
   isOpen: boolean;
@@ -146,6 +148,7 @@ export default function Sidebar(props: Props) {
   } = props;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const templateFileInputRef = useRef<HTMLInputElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     open: false,
     title: "",
@@ -157,7 +160,22 @@ export default function Sidebar(props: Props) {
   const [editingName, setEditingName] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
 
-  const { onLoad } = props;
+  const { onLoad, onImportTemplates } = props;
+
+  const handleImportTemplates = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) onImportTemplates(ev.target.result as string);
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    },
+    [onImportTemplates],
+  );
+
   const handleLoad = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -411,6 +429,20 @@ export default function Sidebar(props: Props) {
               画像出力
             </Button>
           </Cluster>
+          <Cluster gap={0.25}>
+            <Button
+              variant="secondary"
+              onClick={props.onExportTemplates}
+            >
+              テンプレート出力
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => templateFileInputRef.current?.click()}
+            >
+              テンプレート読込
+            </Button>
+          </Cluster>
           <Button
             variant="danger"
             wide
@@ -432,6 +464,13 @@ export default function Sidebar(props: Props) {
             accept=".json"
             style={{ display: "none" }}
             onChange={handleLoad}
+          />
+          <input
+            ref={templateFileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: "none" }}
+            onChange={handleImportTemplates}
           />
         </Stack>
       </Base>

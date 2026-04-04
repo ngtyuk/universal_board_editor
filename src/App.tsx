@@ -239,6 +239,8 @@ export default function App() {
           }
           onSetProjectName={board.setProjectName}
           onSetProjectMemo={board.setProjectMemo}
+          onExportTemplates={board.exportTemplates}
+          onImportTemplates={board.importTemplates}
           highlightedNet={highlightedNet}
           onHighlightNet={setHighlightedNet}
           isOpen={sidebarOpen}
@@ -305,9 +307,9 @@ export default function App() {
                 onOpenTemplateEditor={(tpl) =>
                   setTemplateEditor({ visible: true, tpl: tpl || null })
                 }
+                onDuplicateTemplate={board.duplicateTemplate}
                 onDeleteTemplate={board.deleteTemplate}
-                onExportTemplates={board.exportTemplates}
-                onImportTemplates={board.importTemplates}
+                onReorderTemplates={board.reorderTemplates}
                 onResizeBoard={board.resizeBoard}
               />
             </div>

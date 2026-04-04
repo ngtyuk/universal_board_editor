@@ -11,7 +11,7 @@ export const WIRE_COLORS = [
 
 export const DEFAULT_TEMPLATES: ComponentTemplate[] = [
   {
-    id: 'rp2040-zero', name: 'RP2040-Zero', w: 7, h: 9, color: '#1a1a2e',
+    id: 'rp2040-zero', name: 'RP2040-Zero', w: 7, h: 9, color: '#1a1a2e', category: 'microcontroller',
     pinOffsets: [
       // Left side (top → bottom)
       [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],
@@ -27,7 +27,7 @@ export const DEFAULT_TEMPLATES: ComponentTemplate[] = [
     ],
   },
   {
-    id: 'raspi-pico', name: 'Raspberry Pi Pico', w: 8, h: 20, color: '#008744',
+    id: 'raspi-pico', name: 'Raspberry Pi Pico', w: 8, h: 20, color: '#008744', category: 'microcontroller',
     pinOffsets: [
       // Left side pin 1–20 (top → bottom)
       [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],
@@ -44,7 +44,7 @@ export const DEFAULT_TEMPLATES: ComponentTemplate[] = [
     ],
   },
   {
-    id: 'raspi-pico2', name: 'Raspberry Pi Pico 2', w: 8, h: 20, color: '#006633',
+    id: 'raspi-pico2', name: 'Raspberry Pi Pico 2', w: 8, h: 20, color: '#006633', category: 'microcontroller',
     pinOffsets: [
       [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],
       [10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[17,0],[18,0],[19,0],
@@ -59,37 +59,37 @@ export const DEFAULT_TEMPLATES: ComponentTemplate[] = [
     ],
   },
   {
-    id: 'resistor', name: '抵抗', w: 1, h: 5, color: '#FF9800',
+    id: 'resistor', name: '抵抗', w: 1, h: 5, color: '#FF9800', category: 'passive',
     pinOffsets: [[0,0],[4,0]],
     pins: ['1','2'],
   },
   {
-    id: 'led', name: 'LED', w: 1, h: 3, color: '#FFEB3B',
+    id: 'led', name: 'LED', w: 1, h: 3, color: '#FFEB3B', category: 'io',
     pinOffsets: [[0,0],[2,0]],
     pins: ['+','-'],
   },
   {
-    id: 'capacitor', name: 'コンデンサ', w: 1, h: 3, color: '#00BCD4',
+    id: 'capacitor', name: 'コンデンサ', w: 1, h: 3, color: '#00BCD4', category: 'passive',
     pinOffsets: [[0,0],[2,0]],
     pins: ['+','-'],
   },
   {
-    id: 'diode', name: 'ダイオード', w: 1, h: 4, color: '#9C27B0',
+    id: 'diode', name: 'ダイオード', w: 1, h: 4, color: '#9C27B0', category: 'passive',
     pinOffsets: [[0,0],[3,0]],
     pins: ['A','K'],
   },
   {
-    id: 'switch-4.5mm', name: 'タクトSW (4.5mm)', w: 2, h: 3, color: '#795548',
+    id: 'switch-4.5mm', name: 'タクトSW (4.5mm)', w: 2, h: 3, color: '#795548', category: 'io',
     pinOffsets: [[0,0],[0,1],[2,0],[2,1]],
     pins: ['1','2','3','4'],
   },
   {
-    id: 'switch-6mm', name: 'タクトSW (6mm)', w: 3, h: 4, color: '#795548',
+    id: 'switch-6mm', name: 'タクトSW (6mm)', w: 3, h: 4, color: '#795548', category: 'io',
     pinOffsets: [[0,0],[0,2],[3,0],[3,2]],
     pins: ['1','2','3','4'],
   },
   {
-    id: 'switch-12mm', name: 'タクトSW (12mm)', w: 5, h: 6, color: '#795548',
+    id: 'switch-12mm', name: 'タクトSW (12mm)', w: 5, h: 6, color: '#795548', category: 'io',
     pinOffsets: [[0,1],[0,3],[5,1],[5,3]],
     pins: ['1','2','3','4'],
   },

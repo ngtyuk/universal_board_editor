@@ -1,3 +1,13 @@
+export type TemplateCategory = 'microcontroller' | 'passive' | 'io' | 'ic' | 'other';
+
+export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
+  { id: 'microcontroller', label: 'マイコン' },
+  { id: 'passive', label: '受動部品' },
+  { id: 'io', label: '入出力' },
+  { id: 'ic', label: 'IC/モジュール' },
+  { id: 'other', label: 'その他' },
+];
+
 export interface ComponentTemplate {
   id: string;
   name: string;
@@ -6,6 +16,7 @@ export interface ComponentTemplate {
   color: string;
   pins: string[];
   pinOffsets?: [number, number][];
+  category?: TemplateCategory;
 }
 
 export type BoardSide = 'front' | 'back';

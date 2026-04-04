@@ -1,16 +1,25 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useMemo } from "react";
 import {
   Button,
   FormControl,
   Input,
-  Select,
   Fieldset,
   Base,
   Text,
   Stack,
   Cluster,
+  TabBar,
+  TabItem,
+  Heading,
+  FaArrowRotateRightIcon,
 } from "smarthr-ui";
-import type { BoardState, ToolType, ComponentTemplate } from "../types";
+import type {
+  BoardState,
+  ToolType,
+  ComponentTemplate,
+  TemplateCategory,
+} from "../types";
+import { TEMPLATE_CATEGORIES } from "../types";
 import { WIRE_COLORS } from "../utils/constants";
 import styles from "./ToolOptionsPanel.module.css";
 
@@ -24,9 +33,9 @@ interface Props {
   onSetPlacementRotation: (r: number) => void;
   onSetWireColor: (color: string) => void;
   onOpenTemplateEditor: (tpl?: ComponentTemplate) => void;
+  onDuplicateTemplate: (id: string) => void;
   onDeleteTemplate: (id: string) => void;
-  onExportTemplates: () => void;
-  onImportTemplates: (json: string) => void;
+  onReorderTemplates: (ids: string[]) => void;
   onResizeBoard: (cols: number, rows: number) => void;
 }
 
@@ -41,33 +50,18 @@ export default function ToolOptionsPanel(props: Props) {
 
   const [cols, setCols] = useState(state.cols);
   const [rows, setRows] = useState(state.rows);
-
-  const templateFileInputRef = useRef<HTMLInputElement>(null);
-
-  const { onImportTemplates } = props;
-  const handleImportTemplates = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) onImportTemplates(ev.target.result as string);
-      };
-      reader.readAsText(file);
-      e.target.value = "";
-    },
-    [onImportTemplates],
-  );
+  const [activeCategory, setActiveCategory] =
+    useState<TemplateCategory>("microcontroller");
+  const [reorderMode, setReorderMode] = useState(false);
 
   const selectedTpl = state.templates.find((t) => t.id === selectedTemplateId);
 
-  const templateOptions = [
-    { value: "", label: "-- 選択 --" },
-    ...state.templates.map((t) => ({
-      value: t.id,
-      label: `${t.name} (${t.w}×${t.h})`,
-    })),
-  ];
+  // Templates filtered by active category
+  const filteredTemplates = useMemo(
+    () =>
+      state.templates.filter((t) => (t.category || "other") === activeCategory),
+    [state.templates, activeCategory],
+  );
 
   if (currentTool === "block") {
     return (
@@ -115,74 +109,186 @@ export default function ToolOptionsPanel(props: Props) {
   }
 
   if (currentTool === "component") {
+    const handleMoveUp = (tplId: string) => {
+      const idx = filteredTemplates.findIndex((t) => t.id === tplId);
+      if (idx <= 0) return;
+      // Swap in full template list
+      const allIds = state.templates.map((t) => t.id);
+      const globalA = allIds.indexOf(filteredTemplates[idx].id);
+      const globalB = allIds.indexOf(filteredTemplates[idx - 1].id);
+      const newIds = [...allIds];
+      [newIds[globalA], newIds[globalB]] = [newIds[globalB], newIds[globalA]];
+      props.onReorderTemplates(newIds);
+    };
+
+    const handleMoveDown = (tplId: string) => {
+      const idx = filteredTemplates.findIndex((t) => t.id === tplId);
+      if (idx < 0 || idx >= filteredTemplates.length - 1) return;
+      const allIds = state.templates.map((t) => t.id);
+      const globalA = allIds.indexOf(filteredTemplates[idx].id);
+      const globalB = allIds.indexOf(filteredTemplates[idx + 1].id);
+      const newIds = [...allIds];
+      [newIds[globalA], newIds[globalB]] = [newIds[globalB], newIds[globalA]];
+      props.onReorderTemplates(newIds);
+    };
+
     return (
       <div className={styles.container}>
         <Base padding={0.75} className={styles.panel}>
           <Stack gap={0.5}>
-            <FormControl label="配置する部品テンプレート">
-              <Select
-                options={templateOptions}
-                value={selectedTemplateId}
-                onChange={(e) => props.onSelectTemplate(e.target.value)}
-              />
-            </FormControl>
+            <Heading type={"blockTitle"}>部品選択</Heading>
+            <TabBar>
+              {TEMPLATE_CATEGORIES.map((cat) => (
+                <TabItem
+                  key={cat.id}
+                  id={cat.id}
+                  selected={activeCategory === cat.id}
+                  onClick={(id) => setActiveCategory(id as TemplateCategory)}
+                >
+                  {cat.label}
+                </TabItem>
+              ))}
+            </TabBar>
 
-            {selectedTpl && (
-              <Cluster gap={0.5} align="center">
-                <Text size="S">配置角度: {placementRotation}°</Text>
+            <div className={styles.templateList}>
+              {filteredTemplates.length === 0 ? (
+                <Text size="S" color="TEXT_GREY">
+                  テンプレートなし
+                </Text>
+              ) : (
+                filteredTemplates.map((t, i) => (
+                  <div
+                    key={t.id}
+                    className={`${styles.templateItem} ${t.id === selectedTemplateId ? styles.templateItemSelected : ""}`}
+                    onClick={() => props.onSelectTemplate(t.id)}
+                  >
+                    <span
+                      className={styles.templateColor}
+                      style={{ background: t.color }}
+                    />
+                    <Text size="S" className={styles.templateName}>
+                      {t.name}
+                    </Text>
+                    <Text size="S" color="TEXT_GREY">
+                      {t.w}×{t.h}
+                    </Text>
+                    {reorderMode && (
+                      <span className={styles.templateActions}>
+                        <button
+                          className={styles.templateOrderBtn}
+                          disabled={i === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveUp(t.id);
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className={styles.templateOrderBtn}
+                          disabled={i === filteredTemplates.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveDown(t.id);
+                          }}
+                        >
+                          ↓
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <Cluster gap={0.25}>
+              {reorderMode ? (
                 <Button
                   size="s"
-                  variant="secondary"
-                  onClick={() =>
-                    props.onSetPlacementRotation((placementRotation + 90) % 360)
-                  }
+                  variant="primary"
+                  onClick={() => setReorderMode(false)}
                 >
-                  R 回転
+                  完了
                 </Button>
-              </Cluster>
-            )}
-
-            <Cluster gap={0.25}>
-              <Button onClick={() => props.onOpenTemplateEditor()}>作成</Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (selectedTpl) props.onOpenTemplateEditor(selectedTpl);
-                }}
-                disabled={!selectedTpl}
-              >
-                編集
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  if (selectedTpl) props.onDeleteTemplate(selectedTpl.id);
-                }}
-                disabled={!selectedTpl}
-              >
-                削除
-              </Button>
-            </Cluster>
-            <Cluster gap={0.25}>
-              <Button variant="secondary" onClick={props.onExportTemplates}>
-                エクスポート
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => templateFileInputRef.current?.click()}
-              >
-                インポート
-              </Button>
+              ) : (
+                <>
+                  <Button size="s" onClick={() => props.onOpenTemplateEditor()}>
+                    作成
+                  </Button>
+                  <Button
+                    size="s"
+                    variant="secondary"
+                    onClick={() => {
+                      if (selectedTpl) props.onOpenTemplateEditor(selectedTpl);
+                    }}
+                    disabled={!selectedTpl}
+                  >
+                    編集
+                  </Button>
+                  <Button
+                    size="s"
+                    variant="secondary"
+                    onClick={() => {
+                      if (selectedTpl)
+                        props.onDuplicateTemplate(selectedTpl.id);
+                    }}
+                    disabled={!selectedTpl}
+                  >
+                    複製
+                  </Button>
+                  {filteredTemplates.length > 1 && (
+                    <Button
+                      size="s"
+                      variant="secondary"
+                      onClick={() => setReorderMode(true)}
+                    >
+                      並び替え
+                    </Button>
+                  )}
+                  <Button
+                    size="s"
+                    variant="danger"
+                    onClick={() => {
+                      if (selectedTpl) props.onDeleteTemplate(selectedTpl.id);
+                    }}
+                    disabled={!selectedTpl}
+                  >
+                    削除
+                  </Button>
+                </>
+              )}
             </Cluster>
           </Stack>
         </Base>
-        <input
-          ref={templateFileInputRef}
-          type="file"
-          accept=".json"
-          style={{ display: "none" }}
-          onChange={handleImportTemplates}
-        />
+
+        {selectedTpl && (
+          <Base
+            padding={0.75}
+            className={styles.panel}
+            style={{ marginTop: 8 }}
+          >
+            <Stack gap={0.5}>
+              <Heading type={"blockTitle"}>配置メニュー</Heading>
+              <Stack gap={0.4}>
+                <Cluster gap={0.5} align="center">
+                  <Heading type="subSubBlockTitle">選択中の部品：</Heading>
+                  <Text size="S" weight="bold">
+                    {selectedTpl.name}
+                  </Text>
+                </Cluster>
+                <Cluster gap={0.25} align="center">
+                  <Heading type="subSubBlockTitle">配置角度：</Heading>
+                  <Text size="S" color="TEXT_GREY">
+                    {placementRotation}°
+                  </Text>
+                  <Button size="s" variant="secondary" onClick={() => props.onSetPlacementRotation((placementRotation + 90) % 360)}>
+                    <FaArrowRotateRightIcon />
+                  </Button>
+                </Cluster>
+              </Stack>
+            </Stack>
+          </Base>
+        )}
       </div>
     );
   }

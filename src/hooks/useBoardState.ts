@@ -544,6 +544,27 @@ const { templates, ...boardData } = state;
     notify(`テンプレート「${tpl.name}」を更新しました`, 'success');
   }, [notify, commitState]);
 
+  const duplicateTemplate = useCallback((id: string) => {
+    const tpl = state.templates.find(t => t.id === id);
+    if (!tpl) return;
+    const newTpl: ComponentTemplate = {
+      ...tpl,
+      id: generateId(),
+      name: `${tpl.name} (コピー)`,
+    };
+    commitState(s => ({ ...s, templates: [...s.templates, newTpl] }));
+    setSelectedTemplateId(newTpl.id);
+    notify(`テンプレート「${newTpl.name}」を複製しました`, 'success');
+  }, [state.templates, commitState, notify]);
+
+  const reorderTemplates = useCallback((ids: string[]) => {
+    commitState(s => {
+      const byId = new Map(s.templates.map(t => [t.id, t]));
+      const reordered = ids.map(id => byId.get(id)).filter(Boolean) as ComponentTemplate[];
+      return { ...s, templates: reordered };
+    });
+  }, [commitState]);
+
   const deleteTemplate = useCallback((id: string) => {
     commitState(s => {
       if (DEFAULT_TEMPLATES.find(t => t.id === id)) {
@@ -717,6 +738,8 @@ const { templates, ...boardData } = state;
     toggleBlockedHole,
     addTemplate,
     updateTemplate,
+    duplicateTemplate,
+    reorderTemplates,
     deleteTemplate,
     resetBoard,
     saveProject,
