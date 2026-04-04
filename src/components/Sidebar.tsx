@@ -514,33 +514,40 @@ export default function Sidebar(props: Props) {
             <Text size="S" color="TEXT_GREY">配線なし</Text>
           ) : (
             (() => {
-              // Build pin position map: "r,c" -> "CompName:PinLabel"
-              const pinMap = new Map<string, string>();
-              for (const comp of state.components) {
+              // Build pin position map: "r,c" -> { label, compIndex }
+              const pinMap = new Map<string, { label: string; compIndex: number }>();
+              for (let ci = 0; ci < state.components.length; ci++) {
+                const comp = state.components[ci];
                 const tpl = state.templates.find(t => t.id === comp.templateId);
                 if (!tpl || !tpl.pins?.length) continue;
                 const positions = getComponentPinPositions(comp, tpl);
                 for (let i = 0; i < positions.length && i < tpl.pins.length; i++) {
-                  pinMap.set(`${positions[i][0]},${positions[i][1]}`, `${comp.name}:${tpl.pins[i]}`);
+                  pinMap.set(`${positions[i][0]},${positions[i][1]}`, { label: `${comp.name}:${tpl.pins[i]}`, compIndex: ci });
                 }
               }
               const nets = getAllNets(state.wires);
               return (
                 <div className={styles.wireList}>
                   {nets.map((net, i) => {
-                    // Find component pins in this net
-                    const pins: string[] = [];
-                    const otherHoles: string[] = [];
+                    // Collect entries with sort keys (component index order, then labels, then bare holes)
+                    const entries: { text: string; sortKey: number; named: boolean }[] = [];
                     for (const [r, c] of net) {
-                      const pinDesc = pinMap.get(`${r},${c}`);
-                      if (pinDesc) {
-                        pins.push(pinDesc);
+                      const pin = pinMap.get(`${r},${c}`);
+                      if (pin) {
+                        entries.push({ text: pin.label, sortKey: pin.compIndex, named: true });
                       } else {
-                        otherHoles.push(`(${r + 1},${c + 1})`);
+                        const holeLabel = state.holes[`${r},${c}`]?.label;
+                        if (holeLabel) {
+                          entries.push({ text: `[${holeLabel}]`, sortKey: state.components.length, named: true });
+                        } else {
+                          entries.push({ text: `(${r + 1},${c + 1})`, sortKey: state.components.length + 1, named: false });
+                        }
                       }
                     }
-                    const parts = [...pins, ...otherHoles];
-                    if (parts.length === 0) return null;
+                    entries.sort((a, b) => a.sortKey - b.sortKey);
+                    const namedParts = entries.filter(e => e.named).map(e => e.text);
+                    const allParts = entries.map(e => e.text);
+                    if (allParts.length === 0) return null;
                     const isActive = props.highlightedNet != null &&
                       net.length === props.highlightedNet.length &&
                       net.every(([r, c]) => props.highlightedNet!.some(([hr, hc]) => hr === r && hc === c));
@@ -552,9 +559,9 @@ export default function Sidebar(props: Props) {
                         onClick={() => props.onHighlightNet(isActive ? null : net)}
                       >
                         <Text size="S" className={styles.wireDesc}>
-                          {pins.length >= 2
-                            ? pins.join(' ↔ ')
-                            : parts.join(' ↔ ')}
+                          {namedParts.length >= 2
+                            ? namedParts.join(' ↔ ')
+                            : allParts.join(' ↔ ')}
                         </Text>
                       </div>
                     );
