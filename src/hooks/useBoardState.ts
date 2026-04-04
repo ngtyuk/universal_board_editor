@@ -105,7 +105,8 @@ export function useBoardState() {
   // localStorage への自動保存 (基板データ: テンプレートを除外)
   useEffect(() => {
     try {
-      const { templates: _, ...boardData } = state;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { templates, ...boardData } = state;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(boardData));
     } catch {
       // quota exceeded or private browsing
@@ -152,7 +153,7 @@ export function useBoardState() {
   const resizeBoard = useCallback((cols: number, rows: number) => {
     commitState(s => ({ ...s, cols, rows }));
     setStatusMessage(`基板サイズ: ${cols} × ${rows}`);
-  }, []);
+  }, [commitState]);
 
   const placeComponent = useCallback((r: number, c: number) => {
     commitState(s => {
@@ -193,7 +194,7 @@ export function useBoardState() {
       setStatusMessage(`${tpl.name} を配置しました (${placementRotation}°)`);
       return { ...s, components: [...s.components, comp] };
     });
-  }, [selectedTemplateId, placementRotation, currentSide, notify]);
+  }, [selectedTemplateId, placementRotation, currentSide, notify, commitState]);
 
   const removeComponent = useCallback((id: string) => {
     commitState(s => {
@@ -216,7 +217,7 @@ export function useBoardState() {
     });
     setSelectedComponentId(prev => prev === id ? null : prev);
     setStatusMessage('部品を削除しました');
-  }, []);
+  }, [commitState]);
 
   const rotateComponent = useCallback((id: string) => {
     commitState(s => {
@@ -265,7 +266,7 @@ export function useBoardState() {
         components: s.components.map(c => c.id === id ? { ...c, rotation: newRotation } : c),
       };
     });
-  }, [notify]);
+  }, [notify, commitState]);
 
   const renameComponent = useCallback((id: string, name: string) => {
     commitState(s => ({
@@ -324,7 +325,7 @@ export function useBoardState() {
         components: s.components.map(c => c.id === id ? { ...c, row: newRow, col: newCol } : c),
       };
     });
-  }, [notify]);
+  }, [notify, commitState]);
 
   const addWire = useCallback((from: [number, number], to: [number, number]) => {
     commitState(s => {
@@ -402,7 +403,7 @@ export function useBoardState() {
       return { ...s, wires: [...wires, ...newWires] };
     });
     setStatusMessage(`配線完了: 行${from[0]+1},列${from[1]+1} → 行${to[0]+1},列${to[1]+1}`);
-  }, [wireColor, currentSide, notify]);
+  }, [wireColor, currentSide, notify, commitState]);
 
   const setHoleLabel = useCallback((r: number, c: number, label: string) => {
     commitState(s => {
@@ -411,7 +412,7 @@ export function useBoardState() {
       newHoles[key] = { label, _manual: true };
       return { ...s, holes: newHoles };
     });
-  }, []);
+  }, [commitState]);
 
   const eraseAt = useCallback((r: number, c: number) => {
     commitState(s => {
@@ -472,7 +473,7 @@ export function useBoardState() {
 
       return s;
     });
-  }, [currentSide]);
+  }, [currentSide, commitState]);
 
   const toggleBlockedHole = useCallback((r: number, c: number) => {
     commitState(s => {
@@ -528,12 +529,12 @@ export function useBoardState() {
       setStatusMessage('配線を移動しました');
       return { ...s, wires: s.wires.map((w, i) => i === wireIndex ? newWire : w) };
     });
-  }, [notify]);
+  }, [notify, commitState]);
 
   const addTemplate = useCallback((tpl: ComponentTemplate) => {
     commitState(s => ({ ...s, templates: [...s.templates, tpl] }));
     notify(`テンプレート「${tpl.name}」を追加しました`, 'success');
-  }, [notify]);
+  }, [notify, commitState]);
 
   const updateTemplate = useCallback((tpl: ComponentTemplate) => {
     commitState(s => ({
@@ -541,7 +542,7 @@ export function useBoardState() {
       templates: s.templates.map(t => t.id === tpl.id ? tpl : t),
     }));
     notify(`テンプレート「${tpl.name}」を更新しました`, 'success');
-  }, [notify]);
+  }, [notify, commitState]);
 
   const deleteTemplate = useCallback((id: string) => {
     commitState(s => {
@@ -557,7 +558,7 @@ export function useBoardState() {
       return { ...s, templates: s.templates.filter(t => t.id !== id) };
     });
     setSelectedTemplateId(prev => prev === id ? '' : prev);
-  }, [notify]);
+  }, [notify, commitState]);
 
   const resetBoard = useCallback(() => {
     setState(s => {
@@ -580,7 +581,8 @@ export function useBoardState() {
   }, [commitState]);
 
   const saveProject = useCallback(() => {
-    const { templates: _, ...boardData } = state;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { templates, ...boardData } = state;
     const data = JSON.stringify(boardData, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const a = document.createElement('a');

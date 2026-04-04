@@ -38,18 +38,19 @@ export default function ToolOptionsPanel(props: Props) {
 
   const templateFileInputRef = useRef<HTMLInputElement>(null);
 
+  const { onImportTemplates } = props;
   const handleImportTemplates = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-        if (ev.target?.result) props.onImportTemplates(ev.target.result as string);
+        if (ev.target?.result) onImportTemplates(ev.target.result as string);
       };
       reader.readAsText(file);
       e.target.value = '';
     },
-    [props.onImportTemplates],
+    [onImportTemplates],
   );
 
   const selectedTpl = state.templates.find((t) => t.id === selectedTemplateId);
