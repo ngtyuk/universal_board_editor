@@ -1,0 +1,56 @@
+.minimized {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 10;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sectionTitle {
+  border-bottom: 1px solid #d6d3d0;
+  padding-bottom: 2px;
+}
+
+.list {
+  margin: 0;
+  padding-left: 16px;
+  list-style: disc;
+}
+
+.item {
+  line-height: 1.6;
+}
+
+.table {
+  border-spacing: 0;
+}
+
+.table td {
+  padding: 1px 0;
+  vertical-align: top;
+}
+
+.keyCell {
+  padding-right: 8px;
+  white-space: nowrap;
+}
+
+.kbd {
+  font-family: monospace;
+  background: #f0eeeb;
+  border: 1px solid #d6d3d0;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 11px !important;
+}

@@ -176,7 +176,7 @@ export function useBoardState() {
             return s;
           }
           if (s.blockedHoles?.includes(`${r + dr},${c + dc}`)) {
-            notify('ネジ穴と重なっています', 'error');
+            notify('無効ホールと重なっています', 'error');
             return s;
           }
         }
@@ -304,7 +304,7 @@ export function useBoardState() {
             return s;
           }
           if (s.blockedHoles?.includes(`${newRow + dr},${newCol + dc}`)) {
-            notify('移動先にネジ穴があります', 'error');
+            notify('移動先に無効ホールがあります', 'error');
             return s;
           }
         }
@@ -331,7 +331,7 @@ export function useBoardState() {
       const fromKey = `${from[0]},${from[1]}`;
       const toKey = `${to[0]},${to[1]}`;
       if (s.blockedHoles?.includes(fromKey) || s.blockedHoles?.includes(toKey)) {
-        notify('ネジ穴に配線できません', 'error');
+        notify('無効ホールに配線できません', 'error');
         return s;
       }
       const wires = [...s.wires];
@@ -466,7 +466,7 @@ export function useBoardState() {
       }
 
       if (s.blockedHoles?.includes(key)) {
-        setStatusMessage('ネジ穴を解除しました');
+        setStatusMessage('無効ホールを解除しました');
         return { ...s, blockedHoles: s.blockedHoles.filter(k => k !== key) };
       }
 
@@ -479,12 +479,12 @@ export function useBoardState() {
       const key = `${r},${c}`;
       const blocked = s.blockedHoles || [];
       if (blocked.includes(key)) {
-        setStatusMessage(`ネジ穴を解除しました (行${r + 1}, 列${c + 1})`);
+        setStatusMessage(`無効ホールを解除しました (行${r + 1}, 列${c + 1})`);
         return { ...s, blockedHoles: blocked.filter(k => k !== key) };
       }
       // 部品がある場所はブロック不可
       if (getComponentAtHole(r, c, s.components, s.templates)) {
-        notify('部品がある場所にはネジ穴を設定できません', 'error');
+        notify('部品がある場所には無効ホールを設定できません', 'error');
         return s;
       }
       // 配線の端点がある場所はブロック不可
@@ -492,10 +492,10 @@ export function useBoardState() {
         (w.from[0] === r && w.from[1] === c) || (w.to[0] === r && w.to[1] === c)
       );
       if (hasWire) {
-        notify('配線がある場所にはネジ穴を設定できません', 'error');
+        notify('配線がある場所には無効ホールを設定できません', 'error');
         return s;
       }
-      setStatusMessage(`ネジ穴を設定しました (行${r + 1}, 列${c + 1})`);
+      setStatusMessage(`無効ホールを設定しました (行${r + 1}, 列${c + 1})`);
       return { ...s, blockedHoles: [...blocked, key] };
     });
   }, [commitState, notify]);

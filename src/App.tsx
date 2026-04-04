@@ -14,6 +14,7 @@ import BoardCanvas from "./components/BoardCanvas";
 import Sidebar from "./components/Sidebar";
 import LabelEditor from "./components/LabelEditor";
 import TemplateEditor from "./components/TemplateEditor";
+import HelpPanel from "./components/HelpPanel";
 import "./App.css";
 
 export default function App() {
@@ -320,6 +321,7 @@ export default function App() {
                 </NotificationBar>
               </div>
             )}
+            <HelpPanel currentTool={board.currentTool} />
             <BoardCanvas
               state={board.state}
               currentTool={board.currentTool}
