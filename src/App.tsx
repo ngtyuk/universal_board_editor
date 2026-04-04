@@ -15,13 +15,16 @@ import Sidebar from "./components/Sidebar";
 import LabelEditor from "./components/LabelEditor";
 import TemplateEditor from "./components/TemplateEditor";
 import HelpPanel from "./components/HelpPanel";
+import ToolOptionsPanel from "./components/ToolOptionsPanel";
 import "./App.css";
 
 export default function App() {
   const board = useBoardState();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredHole, setHoveredHole] = useState<[number, number] | null>(null);
-  const [highlightedNet, setHighlightedNet] = useState<[number, number][] | null>(null);
+  const [highlightedNet, setHighlightedNet] = useState<
+    [number, number][] | null
+  >(null);
   const [zoom, setZoom] = useState(1);
 
   const ZOOM_MIN = 0.3;
@@ -106,7 +109,7 @@ export default function App() {
   );
 
   const handleRightClick = useCallback(() => {
-    if (board.currentTool === 'component') {
+    if (board.currentTool === "component") {
       board.setPlacementRotation((board.placementRotation + 90) % 360);
     }
     board.setWireStart(null);
@@ -216,40 +219,23 @@ export default function App() {
   return (
     <>
       <div className="app">
-          <Sidebar
-           state={board.state}
-          currentTool={board.currentTool}
-          projectName={board.state.projectName || ''}
-          projectMemo={board.state.projectMemo || ''}
-            selectedComponentId={board.selectedComponentId}
-          wireColor={board.wireColor}
-          selectedTemplateId={board.selectedTemplateId}
-          placementRotation={board.placementRotation}
-          onSelectTool={board.selectTool}
+        <Sidebar
+          state={board.state}
+          projectName={board.state.projectName || ""}
+          projectMemo={board.state.projectMemo || ""}
+          selectedComponentId={board.selectedComponentId}
           onResizeBoard={board.resizeBoard}
-          onSetWireColor={board.setWireColor}
-          onSelectTemplate={(id) => {
-            board.setSelectedTemplateId(id);
-            board.setPlacementRotation(0);
-          }}
-          onSetPlacementRotation={board.setPlacementRotation}
           onSelectComponent={board.setSelectedComponentId}
           onRotateComponent={board.rotateComponent}
           onRemoveComponent={board.removeComponent}
           onRenameComponent={board.renameComponent}
           onReorderComponents={board.reorderComponents}
-          onOpenTemplateEditor={(tpl) =>
-            setTemplateEditor({ visible: true, tpl: tpl || null })
-          }
-          onDeleteTemplate={board.deleteTemplate}
           onResetBoard={board.resetBoard}
           onSave={board.saveProject}
           onLoad={board.loadProject}
           onExportImage={() =>
             canvasRef.current && board.exportImage(canvasRef.current)
           }
-          onExportTemplates={board.exportTemplates}
-          onImportTemplates={board.importTemplates}
           onSetProjectName={board.setProjectName}
           onSetProjectMemo={board.setProjectMemo}
           highlightedNet={highlightedNet}
@@ -298,6 +284,25 @@ export default function App() {
                 value={board.currentTool}
                 onClickOption={(v) => board.selectTool(v as ToolType)}
               />
+              <ToolOptionsPanel
+                state={board.state}
+                currentTool={board.currentTool}
+                selectedTemplateId={board.selectedTemplateId}
+                placementRotation={board.placementRotation}
+                wireColor={board.wireColor}
+                onSelectTemplate={(id) => {
+                  board.setSelectedTemplateId(id);
+                  board.setPlacementRotation(0);
+                }}
+                onSetPlacementRotation={board.setPlacementRotation}
+                onSetWireColor={board.setWireColor}
+                onOpenTemplateEditor={(tpl) =>
+                  setTemplateEditor({ visible: true, tpl: tpl || null })
+                }
+                onDeleteTemplate={board.deleteTemplate}
+                onExportTemplates={board.exportTemplates}
+                onImportTemplates={board.importTemplates}
+              />
             </div>
             <div className="side-toggle-overlay">
               <SegmentedControl
@@ -321,6 +326,7 @@ export default function App() {
                 </NotificationBar>
               </div>
             )}
+
             <HelpPanel currentTool={board.currentTool} />
             <BoardCanvas
               state={board.state}

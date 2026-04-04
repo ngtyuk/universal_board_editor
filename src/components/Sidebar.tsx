@@ -3,7 +3,6 @@ import {
   Button,
   FormControl,
   Input,
-  Select,
   Base,
   Heading,
   Text,
@@ -30,8 +29,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { BoardState, ToolType, ComponentTemplate, PlacedComponent } from "../types";
-import { WIRE_COLORS } from "../utils/constants";
+import type { BoardState, ComponentTemplate, PlacedComponent } from "../types";
 import { getComponentPinPositions, getAllNets } from "../utils/board";
 import styles from "./Sidebar.module.css";
 
@@ -44,29 +42,17 @@ type ConfirmDialog = {
 
 interface Props {
   state: BoardState;
-  currentTool: ToolType;
   selectedComponentId: string | null;
-  wireColor: string;
-  selectedTemplateId: string;
-  placementRotation: number;
-  onSelectTool: (tool: ToolType) => void;
   onResizeBoard: (cols: number, rows: number) => void;
-  onSetWireColor: (color: string) => void;
-  onSelectTemplate: (id: string) => void;
-  onSetPlacementRotation: (r: number) => void;
   onSelectComponent: (id: string | null) => void;
   onRotateComponent: (id: string) => void;
   onRemoveComponent: (id: string) => void;
   onRenameComponent: (id: string, name: string) => void;
   onReorderComponents: (ids: string[]) => void;
-  onOpenTemplateEditor: (tpl?: ComponentTemplate) => void;
-  onDeleteTemplate: (id: string) => void;
   onResetBoard: () => void;
   onSave: () => void;
   onLoad: (json: string) => void;
   onExportImage: () => void;
-  onExportTemplates: () => void;
-  onImportTemplates: (json: string) => void;
   projectName: string;
   projectMemo: string;
   onSetProjectName: (name: string) => void;
@@ -154,17 +140,12 @@ function ReorderableComponentList({ components, templates, onReorder }: {
 export default function Sidebar(props: Props) {
   const {
     state,
-    currentTool,
     selectedComponentId,
-    wireColor,
-    selectedTemplateId,
-    placementRotation,
   } = props;
 
   const [cols, setCols] = useState(state.cols);
   const [rows, setRows] = useState(state.rows);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const templateFileInputRef = useRef<HTMLInputElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
     open: false,
     title: "",
@@ -176,9 +157,7 @@ export default function Sidebar(props: Props) {
   const [editingName, setEditingName] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
 
-  const selectedTpl = state.templates.find((t) => t.id === selectedTemplateId);
-
-  const { onLoad, onImportTemplates } = props;
+  const { onLoad } = props;
   const handleLoad = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -192,28 +171,6 @@ export default function Sidebar(props: Props) {
     },
     [onLoad],
   );
-
-  const handleImportTemplates = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) onImportTemplates(ev.target.result as string);
-      };
-      reader.readAsText(file);
-      e.target.value = "";
-    },
-    [onImportTemplates],
-  );
-
-  const templateOptions = [
-    { value: "", label: "-- 選択 --" },
-    ...state.templates.map((t) => ({
-      value: t.id,
-      label: `${t.name} (${t.w}×${t.h})`,
-    })),
-  ];
 
   return (
     <div className={styles.sidebar}>
@@ -276,125 +233,6 @@ export default function Sidebar(props: Props) {
           </Button>
         </Stack>
       </Base>
-
-      {/* Component Panel */}
-      {currentTool === "component" && (
-        <Base padding={1} overflow="visible" className={styles.panel}>
-          <Stack gap={0.5}>
-            <Heading type="blockTitle">部品テンプレート</Heading>
-            <FormControl label="テンプレート">
-              <Select
-                options={templateOptions}
-                value={selectedTemplateId}
-                onChange={(e) => props.onSelectTemplate(e.target.value)}
-              />
-            </FormControl>
-
-            {selectedTpl && (
-              <Base padding={0.75} className={styles.templateDetail}>
-                <Stack gap={0.25}>
-                  <Text size="S">
-                    <strong>{selectedTpl.name}</strong> ({selectedTpl.w}×
-                    {selectedTpl.h})
-                  </Text>
-                  <Cluster gap={0.5} align="center">
-                    <Text size="S">配置角度: {placementRotation}°</Text>
-                    <Button
-                      size="s"
-                      variant="secondary"
-                      onClick={() =>
-                        props.onSetPlacementRotation(
-                          (placementRotation + 90) % 360,
-                        )
-                      }
-                    >
-                      R 回転
-                    </Button>
-                  </Cluster>
-                  <Text size="S" color="TEXT_GREY">
-                    基板上のホールをクリックして配置
-                  </Text>
-                </Stack>
-              </Base>
-            )}
-
-            <hr className={styles.divider} />
-            <Stack gap={0.25}>
-              <Button
-                size="s"
-                onClick={() => props.onOpenTemplateEditor()}
-                wide
-              >
-                テンプレートを作成
-              </Button>
-              <Cluster gap={0.25}>
-                <Button
-                  size="s"
-                  variant="secondary"
-                  onClick={() => {
-                    if (selectedTpl) props.onOpenTemplateEditor(selectedTpl);
-                  }}
-                  disabled={!selectedTpl}
-                >
-                  編集
-                </Button>
-                <Button
-                  size="s"
-                  variant="danger"
-                  onClick={() => {
-                    if (selectedTpl)
-                      setConfirmDialog({
-                        open: true,
-                        title: "テンプレートの削除",
-                        message: `「${selectedTpl.name}」を削除しますか？`,
-                        action: () => props.onDeleteTemplate(selectedTpl.id),
-                      });
-                  }}
-                  disabled={!selectedTpl}
-                >
-                  削除
-                </Button>
-              </Cluster>
-              <Cluster gap={0.25}>
-                <Button
-                  size="s"
-                  variant="secondary"
-                  onClick={props.onExportTemplates}
-                >
-                  エクスポート
-                </Button>
-                <Button
-                  size="s"
-                  variant="secondary"
-                  onClick={() => templateFileInputRef.current?.click()}
-                >
-                  インポート
-                </Button>
-              </Cluster>
-            </Stack>
-          </Stack>
-        </Base>
-      )}
-
-      {/* Wire Panel */}
-      {currentTool === "wire" && (
-        <Base padding={1} overflow="visible" className={styles.panel}>
-          <Stack gap={0.5}>
-            <FormControl label="配線の色">
-              <Cluster gap={0.25}>
-                {WIRE_COLORS.map((c) => (
-                  <div
-                    key={c}
-                    className={`${styles.wireColorBtn} ${c === wireColor ? styles.wireColorActive : ""}`}
-                    style={{ background: c }}
-                    onClick={() => props.onSetWireColor(c)}
-                  />
-                ))}
-              </Cluster>
-            </FormControl>
-          </Stack>
-        </Base>
-      )}
 
       {/* Placed Components */}
       <Base padding={1} overflow="visible" className={styles.panel}>
@@ -614,13 +452,6 @@ export default function Sidebar(props: Props) {
             accept=".json"
             style={{ display: "none" }}
             onChange={handleLoad}
-          />
-          <input
-            ref={templateFileInputRef}
-            type="file"
-            accept=".json"
-            style={{ display: "none" }}
-            onChange={handleImportTemplates}
           />
         </Stack>
       </Base>

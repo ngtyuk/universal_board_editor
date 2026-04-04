@@ -1,0 +1,32 @@
+.container {
+  position: absolute;
+  top: 64px;
+  left: 0px;
+  z-index: 10;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #d6d3d0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+  min-width: 220px;
+}
+
+.wireColorBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.wireColorBtn:hover {
+  opacity: 0.85;
+}
+.wireColorActive {
+  border-color: #0077c7 !important;
+  box-shadow: 0 0 0 2px rgba(0, 119, 199, 0.3);
+}
