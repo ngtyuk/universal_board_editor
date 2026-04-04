@@ -137,6 +137,13 @@ export default function App() {
         board.redo();
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+        if (board.selectedComponentId) {
+          e.preventDefault();
+          board.copyComponent(board.selectedComponentId);
+        }
+        return;
+      }
 
       switch (e.key) {
         case "1":
@@ -237,12 +244,14 @@ export default function App() {
           onExportImage={() =>
             canvasRef.current && board.exportImage(canvasRef.current)
           }
+          onExportBOM={board.exportBOM}
           onSetProjectName={board.setProjectName}
           onSetProjectMemo={board.setProjectMemo}
           onExportTemplates={board.exportTemplates}
           onImportTemplates={board.importTemplates}
           highlightedNet={highlightedNet}
           onHighlightNet={setHighlightedNet}
+          onSetNetName={board.setNetName}
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen((v) => !v)}
         />
@@ -301,6 +310,8 @@ export default function App() {
                 onSelectTemplate={(id) => {
                   board.setSelectedTemplateId(id);
                   board.setPlacementRotation(0);
+                  const tpl = board.state.templates.find(t => t.id === id);
+                  board.setPlacementName(tpl?.name || '');
                 }}
                 onSetPlacementRotation={board.setPlacementRotation}
                 onSetWireColor={board.setWireColor}
@@ -311,6 +322,8 @@ export default function App() {
                 onDeleteTemplate={board.deleteTemplate}
                 onReorderTemplates={board.reorderTemplates}
                 onResizeBoard={board.resizeBoard}
+                placementName={board.placementName}
+                onSetPlacementName={board.setPlacementName}
               />
             </div>
             <div className="side-toggle-overlay">

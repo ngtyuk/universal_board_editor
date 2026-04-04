@@ -130,6 +130,7 @@ const { templates, ...boardData } = state;
   const [wireColor, setWireColor] = useState('#ff6b6b');
   const [placementRotation, setPlacementRotation] = useState(0);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [placementName, setPlacementName] = useState('');
   const [currentSide, setCurrentSide] = useState<BoardSide>('front');
   const [showNets, setShowNets] = useState(false);
   const [statusMessage, setStatusMessage] = useState('準備完了');
@@ -187,14 +188,14 @@ const { templates, ...boardData } = state;
         id: generateId(),
         templateId: tpl.id,
         row: r, col: c,
-        name: tpl.name,
+        name: placementName || tpl.name,
         rotation: placementRotation,
         side: currentSide,
       };
       setStatusMessage(`${tpl.name} を配置しました (${placementRotation}°)`);
       return { ...s, components: [...s.components, comp] };
     });
-  }, [selectedTemplateId, placementRotation, currentSide, notify, commitState]);
+  }, [selectedTemplateId, placementRotation, placementName, currentSide, notify, commitState]);
 
   const removeComponent = useCallback((id: string) => {
     commitState(s => {
@@ -414,6 +415,18 @@ const { templates, ...boardData } = state;
     });
   }, [commitState]);
 
+  const setNetName = useCallback((netKey: string, name: string) => {
+    commitState(s => {
+      const netNames = { ...(s.netNames || {}) };
+      if (name.trim()) {
+        netNames[netKey] = name.trim();
+      } else {
+        delete netNames[netKey];
+      }
+      return { ...s, netNames };
+    });
+  }, [commitState]);
+
   const eraseAt = useCallback((r: number, c: number) => {
     commitState(s => {
       const comp = getComponentAtHole(r, c, s.components, s.templates, currentSide);
@@ -581,6 +594,17 @@ const { templates, ...boardData } = state;
     setSelectedTemplateId(prev => prev === id ? '' : prev);
   }, [notify, commitState]);
 
+  const copyComponent = useCallback((id: string) => {
+    const comp = state.components.find(c => c.id === id);
+    if (!comp) return;
+    setSelectedTemplateId(comp.templateId);
+    setPlacementRotation(comp.rotation);
+    setPlacementName(comp.name);
+    setCurrentTool('component');
+    setWireStart(null);
+    notify(`${comp.name} をコピーしました`, 'info');
+  }, [state.components, notify]);
+
   const resetBoard = useCallback(() => {
     setState(s => {
       const next = { ...initialState, templates: s.templates };
@@ -649,6 +673,37 @@ const { templates, ...boardData } = state;
     a.click();
     setStatusMessage('画像を出力しました');
   }, []);
+
+  const exportBOM = useCallback(() => {
+    if (state.components.length === 0) {
+      notify('配置済みの部品がありません', 'warning');
+      return;
+    }
+    const groups = new Map<string, typeof state.components>();
+    for (const comp of state.components) {
+      const list = groups.get(comp.templateId) || [];
+      list.push(comp);
+      groups.set(comp.templateId, list);
+    }
+    const lines = ['\uFEFF部品名,テンプレート,数量,配置位置'];
+    for (const [tplId, comps] of groups) {
+      const tpl = state.templates.find(t => t.id === tplId);
+      const tplName = tpl?.name || tplId;
+      const positions = comps.map(c =>
+        `${c.name}(${c.row + 1},${c.col + 1} ${c.side === 'back' ? '裏' : '表'})`
+      ).join(' / ');
+      lines.push(`${tplName},${tplName},${comps.length},"${positions}"`);
+    }
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const filename = state.projectName?.trim() || 'universal-board';
+    a.download = `${filename}-bom.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    notify(`部品リストをエクスポートしました (${state.components.length}部品)`, 'success');
+  }, [state, notify]);
 
   const exportTemplates = useCallback(() => {
     const customTemplates = state.templates.filter(
@@ -720,6 +775,7 @@ const { templates, ...boardData } = state;
     wireColor, setWireColor,
     placementRotation, setPlacementRotation,
     selectedTemplateId, setSelectedTemplateId,
+    placementName, setPlacementName,
     currentSide, setCurrentSide,
     showNets, setShowNets,
     statusMessage, setStatusMessage,
@@ -730,10 +786,12 @@ const { templates, ...boardData } = state;
     renameComponent,
     reorderComponents,
     rotateComponent,
+    copyComponent,
     moveComponent,
     addWire,
     moveWireEndpoint,
     setHoleLabel,
+    setNetName,
     eraseAt,
     toggleBlockedHole,
     addTemplate,
@@ -745,6 +803,7 @@ const { templates, ...boardData } = state;
     saveProject,
     loadProject,
     exportImage,
+    exportBOM,
     exportTemplates,
     importTemplates,
     setProjectName,

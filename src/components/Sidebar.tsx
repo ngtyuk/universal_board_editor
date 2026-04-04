@@ -53,6 +53,7 @@ interface Props {
   onSave: () => void;
   onLoad: (json: string) => void;
   onExportImage: () => void;
+  onExportBOM: () => void;
   projectName: string;
   projectMemo: string;
   onSetProjectName: (name: string) => void;
@@ -61,6 +62,7 @@ interface Props {
   onImportTemplates: (json: string) => void;
   highlightedNet: [number, number][] | null;
   onHighlightNet: (net: [number, number][] | null) => void;
+  onSetNetName: (netKey: string, name: string) => void;
   isOpen: boolean;
   onToggle: () => void;
 }
@@ -159,6 +161,8 @@ export default function Sidebar(props: Props) {
   const [editingCompId, setEditingCompId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [reorderMode, setReorderMode] = useState(false);
+  const [editingNetKey, setEditingNetKey] = useState<string | null>(null);
+  const [editingNetName, setEditingNetName] = useState("");
 
   const { onLoad, onImportTemplates } = props;
 
@@ -366,6 +370,11 @@ export default function Sidebar(props: Props) {
               return (
                 <div className={styles.wireList}>
                   {nets.map((net, i) => {
+                    // Compute net key (smallest coordinate)
+                    const sortedNet = [...net].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+                    const netKey = `${sortedNet[0][0]},${sortedNet[0][1]}`;
+                    const netName = state.netNames?.[netKey] || "";
+
                     // Collect entries with sort keys (component index order, then labels, then bare holes)
                     const entries: { text: string; sortKey: number; named: boolean }[] = [];
                     for (const [r, c] of net) {
@@ -389,6 +398,7 @@ export default function Sidebar(props: Props) {
                     const isActive = props.highlightedNet != null &&
                       pinOnly.length === props.highlightedNet.length &&
                       pinOnly.every(([r, c]) => props.highlightedNet!.some(([hr, hc]) => hr === r && hc === c));
+                    const isEditingNet = editingNetKey === netKey;
                     return (
                       <div
                         key={i}
@@ -396,11 +406,49 @@ export default function Sidebar(props: Props) {
                         style={{ cursor: 'pointer' }}
                         onClick={() => props.onHighlightNet(isActive ? null : (pinOnly.length > 0 ? pinOnly : null))}
                       >
-                        <Text size="S" className={styles.wireDesc}>
-                          {namedParts.length >= 2
-                            ? namedParts.join(' ↔ ')
-                            : allParts.join(' ↔ ')}
-                        </Text>
+                        <div className={styles.wireItemContent}>
+                          <div className={styles.wireNetName}>
+                            {isEditingNet ? (
+                              <input
+                                className={styles.netNameInput}
+                                value={editingNetName}
+                                autoFocus
+                                placeholder="ネット名"
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => setEditingNetName(e.target.value)}
+                                onBlur={() => {
+                                  props.onSetNetName(netKey, editingNetName);
+                                  setEditingNetKey(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    props.onSetNetName(netKey, editingNetName);
+                                    setEditingNetKey(null);
+                                  } else if (e.key === "Escape") {
+                                    setEditingNetKey(null);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span
+                                className={netName ? styles.netNameSet : styles.netNameEmpty}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingNetKey(netKey);
+                                  setEditingNetName(netName);
+                                }}
+                                title="クリックしてネット名を編集"
+                              >
+                                {netName || "名称未設定"}
+                              </span>
+                            )}
+                          </div>
+                          <Text size="S" className={styles.wireDesc}>
+                            {namedParts.length >= 2
+                              ? namedParts.join(' ↔ ')
+                              : allParts.join(' ↔ ')}
+                          </Text>
+                        </div>
                       </div>
                     );
                   })}
@@ -428,6 +476,9 @@ export default function Sidebar(props: Props) {
             </Button>
             <Button variant="secondary" onClick={props.onExportImage}>
               画像出力
+            </Button>
+            <Button variant="secondary" onClick={props.onExportBOM}>
+              部品リスト出力
             </Button>
           </Cluster>
           <Heading type="subSubBlockTitle">部品テンプレート</Heading>

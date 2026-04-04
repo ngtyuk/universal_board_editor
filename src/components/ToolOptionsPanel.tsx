@@ -37,6 +37,8 @@ interface Props {
   onDeleteTemplate: (id: string) => void;
   onReorderTemplates: (ids: string[]) => void;
   onResizeBoard: (cols: number, rows: number) => void;
+  placementName: string;
+  onSetPlacementName: (name: string) => void;
 }
 
 export default function ToolOptionsPanel(props: Props) {
@@ -269,22 +271,40 @@ export default function ToolOptionsPanel(props: Props) {
           >
             <Stack gap={0.5}>
               <Heading type={"blockTitle"}>配置メニュー</Heading>
-              <Stack gap={0.4}>
+              <Stack gap={0.5}>
                 <Cluster gap={0.5} align="center">
                   <Heading type="subSubBlockTitle">選択中の部品：</Heading>
                   <Text size="S" weight="bold">
                     {selectedTpl.name}
                   </Text>
                 </Cluster>
-                <Cluster gap={0.25} align="center">
-                  <Heading type="subSubBlockTitle">配置角度：</Heading>
-                  <Text size="S" color="TEXT_GREY">
-                    {placementRotation}°
-                  </Text>
-                  <Button size="s" variant="secondary" onClick={() => props.onSetPlacementRotation((placementRotation + 90) % 360)}>
-                    <FaArrowRotateRightIcon />
-                  </Button>
-                </Cluster>
+                <Stack gap={0.5}>
+                  <Cluster gap={0.25} align="center">
+                    <Heading type="subSubBlockTitle">配置名：</Heading>
+                    <Input
+                      className="shr-text-xs"
+                      value={props.placementName}
+                      onChange={(e) => props.onSetPlacementName(e.target.value)}
+                    />
+                  </Cluster>
+                  <Cluster gap={0.25} align="center">
+                    <Heading type="subSubBlockTitle">配置角度：</Heading>
+                    <Text size="S" color="TEXT_GREY">
+                      {placementRotation}°
+                    </Text>
+                    <Button
+                      size="s"
+                      variant="secondary"
+                      onClick={() =>
+                        props.onSetPlacementRotation(
+                          (placementRotation + 90) % 360,
+                        )
+                      }
+                    >
+                      <FaArrowRotateRightIcon />
+                    </Button>
+                  </Cluster>
+                </Stack>
               </Stack>
             </Stack>
           </Base>

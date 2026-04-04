@@ -11,6 +11,7 @@ const TOOL_HELP: Record<ToolType, { label: string; lines: string[] }> = {
       'ドラッグ … 部品 / 配線端点を移動',
       'Delete / Backspace … 選択部品を削除',
       'R … 選択部品を回転',
+      'Ctrl+C … 選択部品をコピー',
     ],
   },
   block: {

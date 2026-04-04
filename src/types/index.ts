@@ -53,6 +53,7 @@ export interface BoardState {
   projectName?: string;
   projectMemo?: string;
   blockedHoles?: string[];
+  netNames?: Record<string, string>;
 }
 
 export type ToolType = 'select' | 'component' | 'wire' | 'label' | 'erase' | 'block';
