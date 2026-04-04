@@ -7,12 +7,18 @@ import {
   Text,
   Stack,
   Cluster,
-  Base,
   ControlledFormDialog,
   SegmentedControl,
   Fieldset,
+  RequiredLabel,
 } from "smarthr-ui";
-import type { ComponentTemplate, TemplateEditorPin, BoardSide } from "../types";
+import type {
+  ComponentTemplate,
+  TemplateEditorPin,
+  BoardSide,
+  TemplateCategory,
+} from "../types";
+import { TEMPLATE_CATEGORIES } from "../types";
 import { getBasePinOffsets } from "../utils/board";
 import { roundRect } from "../utils/canvas";
 import styles from "./TemplateEditor.module.css";
@@ -42,6 +48,7 @@ export default function TemplateEditor({
   const [w, setW] = useState(2);
   const [h, setH] = useState(4);
   const [color, setColor] = useState("#e94560");
+  const [category, setCategory] = useState<TemplateCategory>("other");
   const [pins, setPins] = useState<TemplateEditorPin[]>([]);
   const [hoveredHole, setHoveredHole] = useState<[number, number] | null>(null);
   const [responseStatus, setResponseStatus] =
@@ -63,6 +70,7 @@ export default function TemplateEditor({
       setW(editingTemplate.w);
       setH(editingTemplate.h);
       setColor(editingTemplate.color);
+      setCategory(editingTemplate.category || "other");
       const offsets =
         editingTemplate.pinOffsets || getBasePinOffsets(editingTemplate);
       setPins(
@@ -77,6 +85,7 @@ export default function TemplateEditor({
       setW(2);
       setH(4);
       setColor("#e94560");
+      setCategory("other");
       setPins([]);
     }
     setHoveredHole(null);
@@ -305,13 +314,24 @@ export default function TemplateEditor({
         w,
         h,
         color,
+        category,
         pinOffsets: pins.map((p) => [p.r, p.c]),
         pins: pins.map((p) => p.label || ""),
       };
       onSave(tpl);
       helpers.close();
     },
-    [name, w, h, color, pins, editingTemplate, onSave, responseStatus],
+    [
+      name,
+      w,
+      h,
+      color,
+      category,
+      pins,
+      editingTemplate,
+      onSave,
+      responseStatus,
+    ],
   );
 
   const handleClose = useCallback(() => {
@@ -338,7 +358,8 @@ export default function TemplateEditor({
         <div className={styles.left}>
           <Stack gap={0.75}>
             <Fieldset legend="部品情報">
-              <FormControl label="部品名">
+              <Stack gap={0.5}>
+              <FormControl label="部品名"  statusLabels={<RequiredLabel />}>
                 <Input
                   value={name}
                   width="100%"
@@ -348,26 +369,28 @@ export default function TemplateEditor({
                   }}
                 />
               </FormControl>
-                <FormControl label="幅 (列)">
-                  <Input
-                    type="number"
-                    value={w}
-                    min={1}
-                    max={30}
-                    width="100%"
-                    onChange={(e) => handleResize(Number(e.target.value), h)}
-                  />
-                </FormControl>
-                <FormControl label="高さ (行)">
-                  <Input
-                    type="number"
-                    value={h}
-                    min={1}
-                    max={30}
-                    width="100%"
-                    onChange={(e) => handleResize(w, Number(e.target.value))}
-                  />
-                </FormControl>
+              <Cluster gap={0.5} align="center">
+              <FormControl label="幅 (列)" className="shr-flex-1">
+                <Input
+                  type="number"
+                  value={w}
+                  min={1}
+                  max={30}
+                  width="100%"
+                  onChange={(e) => handleResize(Number(e.target.value), h)}
+                />
+              </FormControl>
+              <FormControl label="高さ (行)" className="shr-flex-1">
+                <Input
+                  type="number"
+                  value={h}
+                  min={1}
+                  max={30}
+                  width="100%"
+                  onChange={(e) => handleResize(w, Number(e.target.value))}
+                />
+              </FormControl>
+              </Cluster>
               <FormControl label="色">
                 <Cluster gap={0.5} align="center">
                   <input
@@ -381,10 +404,23 @@ export default function TemplateEditor({
                   </Text>
                 </Cluster>
               </FormControl>
+              <FormControl label="登録カテゴリ">
+                <select
+                  value={category}
+                  onChange={(e) =>
+                    setCategory(e.target.value as TemplateCategory)
+                  }
+                  className={styles.categorySelect}
+                >
+                  {TEMPLATE_CATEGORIES.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </FormControl>
+              </Stack>
             </Fieldset>
-            <Base padding={0.5} className={styles.hintBox}>
-              <Text size="S">グリッドをクリックしてピンを追加/削除</Text>
-            </Base>
             <div>
               <Heading type="subBlockTitle">ピン一覧 ({pins.length}本)</Heading>
               <div className={styles.pinList}>
@@ -467,6 +503,9 @@ export default function TemplateEditor({
             </Cluster>
           </Cluster>
           <div className={styles.gridArea} onWheel={handleWheel}>
+            <div className={styles.gridHint}>
+              <Text size="S" color="TEXT_GREY">グリッドをクリックしてピンを追加/削除</Text>
+            </div>
             <div
               className={styles.gridScroller}
               style={{

@@ -50,6 +50,18 @@
   border-radius: 8px;
   overflow: auto;
   min-height: 0;
+  position: relative;
+}
+
+.gridHint {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 .gridScroller {
@@ -106,3 +118,12 @@
   line-height: 1;
 }
 .pinRemove:hover { color: #e94560; }
+
+.categorySelect {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d6d3d0;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
