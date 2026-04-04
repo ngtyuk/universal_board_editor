@@ -415,6 +415,7 @@ export default function Sidebar(props: Props) {
       <Base padding={1} overflow="visible" className={styles.panel}>
         <Stack gap={0.5}>
           <Heading type="blockTitle">ファイル</Heading>
+          <Heading type="subSubBlockTitle">プロジェクト</Heading>
           <Cluster gap={0.25}>
             <Button onClick={props.onSave}>
               保存
@@ -429,18 +430,19 @@ export default function Sidebar(props: Props) {
               画像出力
             </Button>
           </Cluster>
+          <Heading type="subSubBlockTitle">部品テンプレート</Heading>
           <Cluster gap={0.25}>
             <Button
               variant="secondary"
               onClick={props.onExportTemplates}
             >
-              テンプレート出力
+              出力
             </Button>
             <Button
               variant="secondary"
               onClick={() => templateFileInputRef.current?.click()}
             >
-              テンプレート読込
+              読込
             </Button>
           </Cluster>
           <Button

@@ -136,7 +136,7 @@ export default function ToolOptionsPanel(props: Props) {
       <div className={styles.container}>
         <Base padding={0.75} className={styles.panel}>
           <Stack gap={0.5}>
-            <Heading type={"blockTitle"}>部品選択</Heading>
+            <Heading type={"blockTitle"}>部品テンプレート選択</Heading>
             <TabBar>
               {TEMPLATE_CATEGORIES.map((cat) => (
                 <TabItem
