@@ -7,6 +7,7 @@ export const BOARD_PAD = 32;
 export const WIRE_COLORS = [
   '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff',
   '#ff922b', '#cc5de8', '#ffffff', '#888888',
+  '#8B4513', '#FF69B4',
 ];
 
 export const DEFAULT_TEMPLATES: ComponentTemplate[] = [
@@ -60,36 +61,43 @@ export const DEFAULT_TEMPLATES: ComponentTemplate[] = [
   },
   {
     id: 'resistor', name: '抵抗', w: 1, h: 5, color: '#FF9800', category: 'passive',
+    componentType: 'resistor', passthrough: true,
     pinOffsets: [[0,0],[4,0]],
     pins: ['1','2'],
   },
   {
     id: 'led', name: 'LED', w: 1, h: 3, color: '#FFEB3B', category: 'io',
+    componentType: 'led', polarity: true,
     pinOffsets: [[0,0],[2,0]],
     pins: ['+','-'],
   },
   {
     id: 'capacitor', name: 'コンデンサ', w: 1, h: 3, color: '#00BCD4', category: 'passive',
+    componentType: 'capacitor', polarity: true,
     pinOffsets: [[0,0],[2,0]],
     pins: ['+','-'],
   },
   {
     id: 'diode', name: 'ダイオード', w: 1, h: 4, color: '#9C27B0', category: 'passive',
+    componentType: 'diode', passthrough: true, polarity: true,
     pinOffsets: [[0,0],[3,0]],
     pins: ['A','K'],
   },
   {
     id: 'switch-4.5mm', name: 'タクトSW (4.5mm)', w: 2, h: 3, color: '#795548', category: 'io',
+    componentType: 'switch', passthrough: true, conductionGroups: [[0, 2], [1, 3]],
     pinOffsets: [[0,0],[0,1],[2,0],[2,1]],
     pins: ['1','2','3','4'],
   },
   {
     id: 'switch-6mm', name: 'タクトSW (6mm)', w: 3, h: 4, color: '#795548', category: 'io',
+    componentType: 'switch', passthrough: true, conductionGroups: [[0, 2], [1, 3]],
     pinOffsets: [[0,0],[0,2],[3,0],[3,2]],
     pins: ['1','2','3','4'],
   },
   {
     id: 'switch-12mm', name: 'タクトSW (12mm)', w: 5, h: 6, color: '#795548', category: 'io',
+    componentType: 'switch', passthrough: true, conductionGroups: [[0, 2], [1, 3]],
     pinOffsets: [[0,1],[0,3],[5,1],[5,3]],
     pins: ['1','2','3','4'],
   },

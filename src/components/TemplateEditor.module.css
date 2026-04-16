@@ -127,3 +127,11 @@
   font-size: 14px;
   background: #fff;
 }
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}

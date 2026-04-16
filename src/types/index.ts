@@ -8,6 +8,17 @@ export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
   { id: 'other', label: 'その他' },
 ];
 
+export type ComponentType = 'generic' | 'resistor' | 'capacitor' | 'diode' | 'switch' | 'led';
+
+export const COMPONENT_TYPES: { id: ComponentType; label: string }[] = [
+  { id: 'generic', label: '汎用' },
+  { id: 'resistor', label: '抵抗' },
+  { id: 'capacitor', label: 'コンデンサ' },
+  { id: 'diode', label: 'ダイオード' },
+  { id: 'switch', label: 'スイッチ' },
+  { id: 'led', label: 'LED' },
+];
+
 export interface ComponentTemplate {
   id: string;
   name: string;
@@ -17,6 +28,10 @@ export interface ComponentTemplate {
   pins: string[];
   pinOffsets?: [number, number][];
   category?: TemplateCategory;
+  componentType?: ComponentType;
+  passthrough?: boolean;
+  conductionGroups?: number[][];
+  polarity?: boolean;
 }
 
 export type BoardSide = 'front' | 'back';
@@ -29,6 +44,7 @@ export interface PlacedComponent {
   name: string;
   rotation: number; // 0, 90, 180, 270
   side?: BoardSide;
+  properties?: Record<string, string>;
 }
 
 export interface Wire {

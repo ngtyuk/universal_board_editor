@@ -48,6 +48,7 @@ interface Props {
   onRotateComponent: (id: string) => void;
   onRemoveComponent: (id: string) => void;
   onRenameComponent: (id: string, name: string) => void;
+  onUpdateComponentProperties: (id: string, properties: Record<string, string>) => void;
   onReorderComponents: (ids: string[]) => void;
   onResetBoard: () => void;
   onSave: () => void;
@@ -347,6 +348,55 @@ export default function Sidebar(props: Props) {
         </Stack>
       </Base>
 
+      {/* Component Properties */}
+      {(() => {
+        if (!selectedComponentId) return null;
+        const comp = state.components.find(c => c.id === selectedComponentId);
+        if (!comp) return null;
+        const tpl = state.templates.find(t => t.id === comp.templateId);
+        if (!tpl) return null;
+        const ct = tpl.componentType;
+        if (!ct || ct === 'generic') return null;
+
+        const props_ = comp.properties || {};
+        const updateProp = (key: string, value: string) => {
+          props.onUpdateComponentProperties(comp.id, { ...props_, [key]: value });
+        };
+
+        return (
+          <Base padding={1} overflow="visible" className={styles.panel}>
+            <Stack gap={0.5}>
+              <Heading type="blockTitle">部品プロパティ</Heading>
+              <Text size="S" color="TEXT_GREY">
+                タイプ: {ct === 'resistor' ? '抵抗' : ct === 'capacitor' ? 'コンデンサ' : ct === 'diode' ? 'ダイオード' : ct === 'switch' ? 'スイッチ' : ct === 'led' ? 'LED' : ct}
+                {tpl.passthrough && ' (パススルー)'}
+                {tpl.polarity && ' (極性あり)'}
+              </Text>
+              {ct === 'resistor' && (
+                <FormControl label="抵抗値">
+                  <Input
+                    value={props_.resistanceValue || ''}
+                    placeholder="例: 10kΩ"
+                    width="100%"
+                    onChange={(e) => updateProp('resistanceValue', e.target.value)}
+                  />
+                </FormControl>
+              )}
+              {ct === 'capacitor' && (
+                <FormControl label="容量">
+                  <Input
+                    value={props_.capacitanceValue || ''}
+                    placeholder="例: 100μF"
+                    width="100%"
+                    onChange={(e) => updateProp('capacitanceValue', e.target.value)}
+                  />
+                </FormControl>
+              )}
+            </Stack>
+          </Base>
+        );
+      })()}
+
       {/* Wire List (grouped by net) */}
       <Base padding={1} overflow="visible" className={styles.panel}>
         <Stack gap={0.5}>
@@ -366,7 +416,7 @@ export default function Sidebar(props: Props) {
                   pinMap.set(`${positions[i][0]},${positions[i][1]}`, { label: `${comp.name}:${tpl.pins[i]}`, compIndex: ci });
                 }
               }
-              const nets = getAllNets(state.wires);
+              const nets = getAllNets(state.wires, state.components, state.templates);
               return (
                 <div className={styles.wireList}>
                   {nets.map((net, i) => {

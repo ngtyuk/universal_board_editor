@@ -17,8 +17,9 @@ import type {
   TemplateEditorPin,
   BoardSide,
   TemplateCategory,
+  ComponentType,
 } from "../types";
-import { TEMPLATE_CATEGORIES } from "../types";
+import { TEMPLATE_CATEGORIES, COMPONENT_TYPES } from "../types";
 import { getBasePinOffsets } from "../utils/board";
 import { roundRect } from "../utils/canvas";
 import styles from "./TemplateEditor.module.css";
@@ -50,6 +51,10 @@ export default function TemplateEditor({
   const [color, setColor] = useState("#e94560");
   const [category, setCategory] = useState<TemplateCategory>("other");
   const [pins, setPins] = useState<TemplateEditorPin[]>([]);
+  const [componentType, setComponentType] = useState<ComponentType>("generic");
+  const [passthrough, setPassthrough] = useState(false);
+  const [polarity, setPolarity] = useState(false);
+  const [conductionGroups, setConductionGroups] = useState<number[][]>([]);
   const [hoveredHole, setHoveredHole] = useState<[number, number] | null>(null);
   const [responseStatus, setResponseStatus] =
     useState<ResponseStatus>(undefined);
@@ -71,6 +76,10 @@ export default function TemplateEditor({
       setH(editingTemplate.h);
       setColor(editingTemplate.color);
       setCategory(editingTemplate.category || "other");
+      setComponentType(editingTemplate.componentType || "generic");
+      setPassthrough(editingTemplate.passthrough || false);
+      setPolarity(editingTemplate.polarity || false);
+      setConductionGroups(editingTemplate.conductionGroups || []);
       const offsets =
         editingTemplate.pinOffsets || getBasePinOffsets(editingTemplate);
       setPins(
@@ -86,6 +95,10 @@ export default function TemplateEditor({
       setH(4);
       setColor("#e94560");
       setCategory("other");
+      setComponentType("generic");
+      setPassthrough(false);
+      setPolarity(false);
+      setConductionGroups([]);
       setPins([]);
     }
     setHoveredHole(null);
@@ -315,6 +328,10 @@ export default function TemplateEditor({
         h,
         color,
         category,
+        componentType: componentType !== "generic" ? componentType : undefined,
+        passthrough: passthrough || undefined,
+        polarity: polarity || undefined,
+        conductionGroups: conductionGroups.length > 0 ? conductionGroups : undefined,
         pinOffsets: pins.map((p) => [p.r, p.c]),
         pins: pins.map((p) => p.label || ""),
       };
@@ -327,6 +344,10 @@ export default function TemplateEditor({
       h,
       color,
       category,
+      componentType,
+      passthrough,
+      polarity,
+      conductionGroups,
       pins,
       editingTemplate,
       onSave,
@@ -419,6 +440,93 @@ export default function TemplateEditor({
                   ))}
                 </select>
               </FormControl>
+              <FormControl label="部品タイプ">
+                <select
+                  value={componentType}
+                  onChange={(e) =>
+                    setComponentType(e.target.value as ComponentType)
+                  }
+                  className={styles.categorySelect}
+                >
+                  {COMPONENT_TYPES.map((ct) => (
+                    <option key={ct.id} value={ct.id}>
+                      {ct.label}
+                    </option>
+                  ))}
+                </select>
+              </FormControl>
+              <Cluster gap={0.75} align="center">
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={passthrough}
+                    onChange={(e) => setPassthrough(e.target.checked)}
+                  />
+                  パススルー（配線として接続）
+                </label>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={polarity}
+                    onChange={(e) => setPolarity(e.target.checked)}
+                  />
+                  極性あり
+                </label>
+              </Cluster>
+              {passthrough && componentType === "switch" && (
+                <Fieldset legend="導通グループ">
+                  <Stack gap={0.25}>
+                    {conductionGroups.map((group, gi) => (
+                      <Cluster key={gi} gap={0.25} align="center">
+                        <Text size="S" color="TEXT_GREY">
+                          G{gi + 1}:
+                        </Text>
+                        {pins.map((_, pi) => (
+                          <label key={pi} className={styles.checkboxLabel}>
+                            <input
+                              type="checkbox"
+                              checked={group.includes(pi)}
+                              onChange={(e) => {
+                                setConductionGroups((prev) =>
+                                  prev.map((g, i) =>
+                                    i === gi
+                                      ? e.target.checked
+                                        ? [...g, pi]
+                                        : g.filter((x) => x !== pi)
+                                      : g,
+                                  ),
+                                );
+                              }}
+                            />
+                            <Text size="S">
+                              {pins[pi]?.label || `P${pi + 1}`}
+                            </Text>
+                          </label>
+                        ))}
+                        <button
+                          className={styles.pinRemove}
+                          onClick={() =>
+                            setConductionGroups((prev) =>
+                              prev.filter((_, i) => i !== gi),
+                            )
+                          }
+                        >
+                          ×
+                        </button>
+                      </Cluster>
+                    ))}
+                    <Button
+                      size="s"
+                      variant="secondary"
+                      onClick={() =>
+                        setConductionGroups((prev) => [...prev, []])
+                      }
+                    >
+                      グループ追加
+                    </Button>
+                  </Stack>
+                </Fieldset>
+              )}
               </Stack>
             </Fieldset>
             <div>

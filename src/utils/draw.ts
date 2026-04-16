@@ -482,7 +482,7 @@ export function drawBoard(
   if (opts.highlightedNet && opts.highlightedNet.length > 0) {
     // Get the full net from any highlighted pin to find all wires
     const [hr, hc] = opts.highlightedNet[0];
-    const fullNet = getConnectedHoles(hr, hc, drawState.wires);
+    const fullNet = getConnectedHoles(hr, hc, drawState.wires, drawState.components, drawState.templates);
     const fullNetSet = new Set(fullNet.map(([r, c]) => `${r},${c}`));
     drawHighlightedWires(fullNetSet, 'rgba(0,200,255,0.8)', 0.7);
     for (const [cr, cc] of opts.highlightedNet) {
@@ -498,7 +498,7 @@ export function drawBoard(
 
   // Connected holes highlight (pin positions only)
   if (opts.hoveredHole && opts.currentTool === 'select') {
-    const connected = getConnectedHoles(opts.hoveredHole[0], opts.hoveredHole[1], drawState.wires);
+    const connected = getConnectedHoles(opts.hoveredHole[0], opts.hoveredHole[1], drawState.wires, drawState.components, drawState.templates);
     const connectedPins = connected.filter(([cr, cc]) => pinHoles.has(`${cr},${cc}`));
     if (connectedPins.length > 1) {
       const connectedSet = new Set(connected.map(([r, c]) => `${r},${c}`));
@@ -522,7 +522,7 @@ export function drawBoard(
       '#00cec9', '#fab1a0', '#6c5ce7', '#55efc4', '#fdcb6e',
       '#e17055', '#0984e3', '#b2bec3', '#d63031', '#00b894',
     ];
-    const nets = getAllNets(drawState.wires);
+    const nets = getAllNets(drawState.wires, drawState.components, drawState.templates);
     for (let ni = 0; ni < nets.length; ni++) {
       const color = NET_COLORS[ni % NET_COLORS.length];
       for (const [nr, nc] of nets[ni]) {

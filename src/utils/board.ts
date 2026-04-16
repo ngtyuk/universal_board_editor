@@ -71,19 +71,68 @@ export function getComponentAtHole(
   return null;
 }
 
-export function getConnectedHoles(r: number, c: number, wires: Wire[]): [number, number][] {
+export function getConnectedHoles(
+  r: number, c: number,
+  wires: Wire[],
+  components?: PlacedComponent[],
+  templates?: ComponentTemplate[],
+): [number, number][] {
+  // パススルー部品のピン接続マップを構築
+  const passthroughPins = new Map<string, [number, number][]>();
+  if (components && templates) {
+    for (const comp of components) {
+      const tpl = templates.find(t => t.id === comp.templateId);
+      if (!tpl || !tpl.passthrough) continue;
+      const pinPositions = getComponentPinPositions(comp, tpl);
+
+      if (tpl.conductionGroups && tpl.conductionGroups.length > 0) {
+        // スイッチ: 導通グループ内のピンのみ接続
+        for (const group of tpl.conductionGroups) {
+          const groupPositions = group
+            .filter(idx => idx >= 0 && idx < pinPositions.length)
+            .map(idx => pinPositions[idx]);
+          for (const pos of groupPositions) {
+            const key = `${pos[0]},${pos[1]}`;
+            const others = groupPositions.filter(p => p[0] !== pos[0] || p[1] !== pos[1]);
+            const existing = passthroughPins.get(key) || [];
+            passthroughPins.set(key, [...existing, ...others]);
+          }
+        }
+      } else {
+        // 全ピンが導通（抵抗・ダイオード等）
+        for (const pos of pinPositions) {
+          const key = `${pos[0]},${pos[1]}`;
+          const others = pinPositions.filter(p => p[0] !== pos[0] || p[1] !== pos[1]);
+          const existing = passthroughPins.get(key) || [];
+          passthroughPins.set(key, [...existing, ...others]);
+        }
+      }
+    }
+  }
+
   const visited = new Set<string>();
   const queue = [`${r},${c}`];
   visited.add(`${r},${c}`);
   while (queue.length > 0) {
     const current = queue.shift()!;
     const [cr, cc] = current.split(',').map(Number);
+
+    // 配線を辿る
     for (const wire of wires) {
       let other: [number, number] | null = null;
       if (wire.from[0] === cr && wire.from[1] === cc) other = wire.to;
       else if (wire.to[0] === cr && wire.to[1] === cc) other = wire.from;
       if (other) {
         const key = `${other[0]},${other[1]}`;
+        if (!visited.has(key)) { visited.add(key); queue.push(key); }
+      }
+    }
+
+    // パススルー部品を辿る
+    const ptConnections = passthroughPins.get(current);
+    if (ptConnections) {
+      for (const pos of ptConnections) {
+        const key = `${pos[0]},${pos[1]}`;
         if (!visited.has(key)) { visited.add(key); queue.push(key); }
       }
     }
@@ -161,7 +210,11 @@ export function generateId(): string {
 }
 
 /** 全ネット（接続グループ）を列挙する。2ホール以上繋がったグループのみ返す。 */
-export function getAllNets(wires: Wire[]): [number, number][][] {
+export function getAllNets(
+  wires: Wire[],
+  components?: PlacedComponent[],
+  templates?: ComponentTemplate[],
+): [number, number][][] {
   const visited = new Set<string>();
   const nets: [number, number][][] = [];
 
@@ -175,7 +228,7 @@ export function getAllNets(wires: Wire[]): [number, number][][] {
   for (const key of endpoints) {
     if (visited.has(key)) continue;
     const [r, c] = key.split(',').map(Number);
-    const group = getConnectedHoles(r, c, wires);
+    const group = getConnectedHoles(r, c, wires, components, templates);
     for (const [gr, gc] of group) visited.add(`${gr},${gc}`);
     if (group.length >= 2) nets.push(group);
   }

@@ -237,6 +237,7 @@ export default function App() {
           onRotateComponent={board.rotateComponent}
           onRemoveComponent={board.removeComponent}
           onRenameComponent={board.renameComponent}
+          onUpdateComponentProperties={board.updateComponentProperties}
           onReorderComponents={board.reorderComponents}
           onResetBoard={board.resetBoard}
           onSave={board.saveProject}

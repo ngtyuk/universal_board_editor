@@ -276,6 +276,13 @@ const { templates, ...boardData } = state;
     }));
   }, [commitState]);
 
+  const updateComponentProperties = useCallback((id: string, properties: Record<string, string>) => {
+    commitState(s => ({
+      ...s,
+      components: s.components.map(c => c.id === id ? { ...c, properties } : c),
+    }));
+  }, [commitState]);
+
   const reorderComponents = useCallback((ids: string[]) => {
     commitState(s => {
       const byId = new Map(s.components.map(c => [c.id, c]));
@@ -444,13 +451,49 @@ const { templates, ...boardData } = state;
         return { ...s, holes: newHoles, components: s.components.filter(c => c.id !== comp.id) };
       }
 
-      // 端点が一致する配線を削除（アクティブ面のみ）
-      const endpointIdx = s.wires.findIndex(w =>
-        (w.side || 'front') === currentSide &&
-        ((w.from[0] === r && w.from[1] === c) || (w.to[0] === r && w.to[1] === c)));
-      if (endpointIdx >= 0) {
+      // 端点が一致する配線を検索（アクティブ面のみ）
+      const wiresAtPoint = s.wires
+        .map((w, i) => ({ wire: w, index: i }))
+        .filter(({ wire }) => {
+          if ((wire.side || 'front') !== currentSide) return false;
+          return (wire.from[0] === r && wire.from[1] === c) ||
+                 (wire.to[0] === r && wire.to[1] === c);
+        });
+
+      if (wiresAtPoint.length === 2) {
+        // 2本の配線が接続 → 一直線なら結合を試みる
+        const [w1, w2] = wiresAtPoint;
+        const otherEnd1: [number, number] =
+          (w1.wire.from[0] === r && w1.wire.from[1] === c) ? w1.wire.to : w1.wire.from;
+        const otherEnd2: [number, number] =
+          (w2.wire.from[0] === r && w2.wire.from[1] === c) ? w2.wire.to : w2.wire.from;
+
+        // 一直線チェック（水平・垂直・45度）
+        const dr1 = r - otherEnd1[0], dc1 = c - otherEnd1[1];
+        const dr2 = otherEnd2[0] - r, dc2 = otherEnd2[1] - c;
+        const cross = dr1 * dc2 - dc1 * dr2;
+        const dot = dr1 * dr2 + dc1 * dc2;
+
+        if (cross === 0 && dot > 0 && w1.wire.color === w2.wire.color) {
+          // 結合: otherEnd1 → otherEnd2 の1本にまとめる
+          const mergedWire = {
+            from: otherEnd1,
+            to: otherEnd2,
+            color: w1.wire.color,
+            side: w1.wire.side,
+          };
+          const indicesToRemove = new Set([w1.index, w2.index]);
+          const newWires = s.wires.filter((_, i) => !indicesToRemove.has(i));
+          newWires.push(mergedWire);
+          setStatusMessage('配線を結合しました');
+          return { ...s, wires: newWires };
+        }
+      }
+
+      if (wiresAtPoint.length > 0) {
+        // 結合できない場合は最初の配線を削除
         setStatusMessage('配線を削除しました');
-        return { ...s, wires: s.wires.filter((_, i) => i !== endpointIdx) };
+        return { ...s, wires: s.wires.filter((_, i) => i !== wiresAtPoint[0].index) };
       }
 
       // 配線の途中を通るホールで分割（アクティブ面のみ）
@@ -784,6 +827,7 @@ const { templates, ...boardData } = state;
     placeComponent,
     removeComponent,
     renameComponent,
+    updateComponentProperties,
     reorderComponents,
     rotateComponent,
     copyComponent,
